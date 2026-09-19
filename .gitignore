@@ -1,0 +1,13 @@
+- 
+# Entorno virtual
+.venv/
+
+# Archivos de base de datos
+barber_shop.db
+
+# Archivos temporales de Python
+__pycache__/
+*.pyc
+
+# Carpetas de configuración de VS Code
+.vscode/
