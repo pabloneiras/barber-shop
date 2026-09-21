@@ -1,6 +1,5 @@
-- 
 # Entorno virtual
-.venv/
+barberShopFAPI_React/
 
 # Archivos de base de datos
 peluqueria.db
