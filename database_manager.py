@@ -13,6 +13,7 @@ class DatabaseManager:
     # creates the file if it doesn't exist
     def connect(self):
         self.connection = sqlite3.connect(self.db_path)
+        self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
 
     def create_tables(self):
@@ -72,7 +73,7 @@ class DatabaseManager:
 
 
     def get_appointments_with_client(self, client_id= None, date= None):
-        #The SQL query is constructed in parts because some values ​​are optional, and ts makes the process easier.
+        #The SQL query is constructed in parts because some values are optional, and ts makes the process easier.
         query = " SELECT name, phone, appointment_date, appointment_time, service FROM clients JOIN appointments ON clients.client_id = appointments.client_id "
         params = []
         if client_id is not None and date is not None:
@@ -93,7 +94,59 @@ class DatabaseManager:
         self.cursor.execute(query, [appointment_id])
         self.connection.commit()
         return self.cursor.rowcount
+
+
+
+    # MODIFIES date, time, service in a certain appointment_id -> it only modifies it if they are given (it does not override with None)
+    def update_appointment(self, appointment_id, date = None, time = None, service = None):
+    
+        params = []
+        fields = [] 
+        if date is not None:
+            fields.append("appointment_date = ?")
+            params.append(date)
+        if time is not None:
+            fields.append("appointment_time = ?")
+            params.append(time)
+        if service is not None:
+            fields.append("service = ?") 
+            params.append(service)
         
+        if not fields:
+            return 0
+        
+        param_list_str = ", ".join(fields)
+        query = f"UPDATE appointments SET {param_list_str} WHERE appointment_id = ? "
+        params.append(appointment_id)
+        self.cursor.execute(query, params)
+        self.connection.commit()
+        return self.cursor.rowcount
+        
+
+    def update_client(self, client_id, name= None, last_name = None, phone = None):
+        params = []
+        fields = [] 
+        if name is not None:
+            fields.append("name = ?")
+            params.append(name) 
+        if last_name is not None: 
+            fields.append("last_name = ?")
+            params.append(last_name)
+        if phone is not None:
+            phone = normalize_phone(phone)
+            fields.append("phone = ?") 
+            params.append(phone)
+        
+        if not fields:
+            return 0
+        
+        param_list_str = ", ".join(fields)
+        query = f"UPDATE clients SET {param_list_str} WHERE client_id = ? "
+        params.append(client_id)
+        self.cursor.execute(query, params)
+        self.connection.commit()
+        return self.cursor.rowcount
+
 
 
         

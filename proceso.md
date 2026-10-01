@@ -27,3 +27,10 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Recreé la base de datos `barber_shop.db` con el nuevo esquema en inglés.
 - Traduje todo el proyecto (código, variables, decisiones) al inglés, manteniendo `proceso.md` en español.
 - Plan Día 4: `UPDATE` (editar cita y cliente) para completar el CRUD.
+
+## Día 4
+- Implementé `update_appointment()` y `update_client()` para completar el CRUD (Crear, Leer, Actualizar, Borrar).
+- Usé el patrón de construcción dinámica de SQL con dos listas (`fields` para las columnas y `params` para los valores): solo se actualizan los campos que se pasan, sin machacar el resto con `None`.
+- Aprendí que el `id` del `WHERE` tiene que ir el último en la lista de `params`, que el `SET` se construye con `fields` (nombres de columna) y que hay que unirlo con `", ".join(fields)`.
+- Añadí `self.connection.row_factory = sqlite3.Row` en `connect()` para poder acceder a las columnas por nombre (`fila["phone"]`) en vez de por índice, lo que me ahorrará trabajo cuando llegue a FastAPI.
+- Verifiqué que el update parcial funciona, que sin cambios devuelve `0`, que un id inexistente devuelve `0` y que el `UNIQUE` del teléfono sigue protegiendo contra duplicados al editar.
