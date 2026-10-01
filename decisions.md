@@ -94,3 +94,23 @@ Use SQLite (embedded database in a single `peluqueria.db` file) managed with Pyt
 - Zero server configuration; the file is created automatically by running the database manager.
 - No background processes that can stop; high tolerance to power cuts.
 - The data access layer is designed decoupled (repository pattern) so it can be migrated to PostgreSQL without rewriting the business logic if the project grows.
+
+---
+
+## ADR-005: Enabling Foreign Keys and data integrity rules
+
+- **Status:** Accepted
+- **Date:** 2026-09-24
+
+### Context
+SQLite disables foreign key enforcement by default. To ensure data integrity, especially for preventing deletion of clients that have existing historical appointments, we need to explicitly enable these constraints.
+
+### Decision
+- Execute `PRAGMA foreign_keys = ON;` in `create_tables()` to activate SQLITE FK support.
+- Apply `ON DELETE RESTRICT` on the `appointments` foreign key constraint to block deleting a client if they have appointments.
+- Apply `ON UPDATE CASCADE` for referential integrity (even if the `client_id` PK is immutable).
+
+### Consequences
+- Data integrity is guaranteed at database level.
+- Attempting to delete a client with active appointments will raise an `IntegrityError`, protecting historical records.
+- Added complexity: code must now handle potential `IntegrityError` when attempting deletes or updates.
