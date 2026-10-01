@@ -17,4 +17,13 @@ Idea para el futuros dias: normalizar el teléfono (quitar espacios, guiones, +3
 
 
 
-Día 2 (empezado): Separé la lógica en DatabaseManager (capa de datos) y utils.py (funciones puras). Empecé a crear la clase con conectar(), crear_tabla(), cerrar_conexion(). Pendiente: terminar insertar y búsqueda.
+Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py` (funciones puras). Empecé a crear la clase con `connect()`, `create_tables()`, `close_connection()`. 
+
+## Día 3
+- Implementé los métodos principales del CRUD: `insert_client()` (devolviendo `lastrowid`), `insert_appointment()`, `find_client()` (normalizando el teléfono antes) y `get_or_create_client()` (lógica de negocio para reutilizar clientes existentes).
+- Implementé `get_appointments_with_client()` usando `JOIN` para enlazar clientes con citas y devolver los datos enriquecidos (nombre, teléfono).
+- Implementé `delete_appointment()` para cancelar citas.
+- Protegí la base de datos activando `PRAGMA foreign_keys = ON` y aplicando `ON DELETE RESTRICT` para proteger el historial de citas al intentar borrar clientes.
+- Recreé la base de datos `barber_shop.db` con el nuevo esquema en inglés.
+- Traduje todo el proyecto (código, variables, decisiones) al inglés, manteniendo `proceso.md` en español.
+- Plan Día 4: `UPDATE` (editar cita y cliente) para completar el CRUD.
