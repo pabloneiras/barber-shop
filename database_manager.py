@@ -1,10 +1,11 @@
 import sqlite3
+from datetime import datetime
 from pathlib import Path
+
 from utils import normalize_phone
 
 
 class DatabaseManager:
-
     def __init__(self, db_path: str | Path):
         self.db_path = db_path
         self.connection = None
@@ -13,6 +14,8 @@ class DatabaseManager:
     # creates the file if it doesn't exist
     def connect(self):
         self.connection = sqlite3.connect(self.db_path)
+        # Set row_factory to sqlite3.Row: rows behave like dictionaries,
+        # allowing access by column name (e.g., row['phone']) instead of index (row[0])
         self.connection.row_factory = sqlite3.Row
         self.cursor = self.connection.cursor()
 
@@ -47,38 +50,52 @@ class DatabaseManager:
 
     def insert_client(self, phone: str, name=None, last_name=None):
         phone = normalize_phone(phone)
-        self.cursor.execute("""INSERT INTO clients(name, last_name, phone) 
-        VALUES (?,?,?)""", (name, last_name, phone))
+        self.cursor.execute(
+            """INSERT INTO clients(name, last_name, phone) 
+        VALUES (?,?,?)""",
+            (name, last_name, phone),
+        )
         self.connection.commit()
-        return self.cursor.lastrowid
+        return self.cursor.lastrowid  # returns the new client's id so we can chain it into insert_appointment
 
-    def insert_appointment(self, client_id, appointment_date, appointment_time, service=None):
-        self.cursor.execute("""
-        INSERT INTO appointments (client_id, appointment_date, appointment_time, service) VALUES (?,?,?,?)""", (client_id, appointment_date, appointment_time, service))
+    def insert_appointment(
+        self, client_id, appointment_date, appointment_time, service=None
+    ):
+        self.cursor.execute(
+            """
+        INSERT INTO appointments (client_id, appointment_date, appointment_time, service) VALUES (?,?,?,?)""",
+            (client_id, appointment_date, appointment_time, service),
+        )
         self.connection.commit()
 
     def find_client(self, phone):
-        phone = normalize_phone(phone)
+        phone = normalize_phone(phone)  # normalize before searching so the format always matches
         self.cursor.execute("SELECT client_id FROM clients WHERE phone = ?", (phone,))
         client = self.cursor.fetchone()
         return client
 
-    def get_or_create_client(self, phone, name = None, last_name = None):
+    def get_or_create_client(self, phone, name=None, last_name=None):
         phone = normalize_phone(phone)
         client = self.find_client(phone)
         if client is not None:
-            return client[0] #returns the client id (the first of the tuple)
+            return client[0]  # client already exists: return its id
         else:
-            return self.insert_client(phone, name, last_name) #if it doesn't exist -> we insert and returns the id
+            return self.insert_client(phone, name, last_name)  # new client: insert and return the new id
 
-
-    def get_appointments_with_client(self, client_id= None, date= None):
-        #The SQL query is constructed in parts because some values are optional, and ts makes the process easier.
-        query = " SELECT name, phone, appointment_date, appointment_time, service FROM clients JOIN appointments ON clients.client_id = appointments.client_id "
+    def get_appointments_with_client(self, client_id=None, date=None):
+        # Query built in parts because filters are optional.
+        # appointments.appointment_id is included so the CLI can show it to the user (needed for edit/cancel).
+        query = """
+            SELECT appointments.appointment_id,
+                   clients.name, clients.phone,
+                   appointments.appointment_date, appointments.appointment_time, appointments.service
+            FROM appointments
+            JOIN clients ON appointments.client_id = clients.client_id
+        """
         params = []
         if client_id is not None and date is not None:
-            params += [client_id, date]
             query += "WHERE clients.client_id = ? AND appointments.appointment_date = ?"
+            params += [client_id, date]
         elif client_id is not None:
             query += "WHERE clients.client_id = ?"
             params.append(client_id)
@@ -93,15 +110,13 @@ class DatabaseManager:
         query = "DELETE FROM appointments WHERE appointment_id = ?"
         self.cursor.execute(query, [appointment_id])
         self.connection.commit()
-        return self.cursor.rowcount
+        return self.cursor.rowcount  # 1 if deleted, 0 if the id didn't exist
 
+    # Only updates the fields that are passed — does not override the rest with None
+    def update_appointment(self, appointment_id, date=None, time=None, service=None):
 
-
-    # MODIFIES date, time, service in a certain appointment_id -> it only modifies it if they are given (it does not override with None)
-    def update_appointment(self, appointment_id, date = None, time = None, service = None):
-    
         params = []
-        fields = [] 
+        fields = []
         if date is not None:
             fields.append("appointment_date = ?")
             params.append(date)
@@ -109,37 +124,37 @@ class DatabaseManager:
             fields.append("appointment_time = ?")
             params.append(time)
         if service is not None:
-            fields.append("service = ?") 
+            fields.append("service = ?")
             params.append(service)
-        
+
         if not fields:
-            return 0
-        
+            return 0  # nothing to update
+
         param_list_str = ", ".join(fields)
         query = f"UPDATE appointments SET {param_list_str} WHERE appointment_id = ? "
-        params.append(appointment_id)
+        params.append(appointment_id)  # WHERE param goes last
         self.cursor.execute(query, params)
         self.connection.commit()
         return self.cursor.rowcount
-        
 
-    def update_client(self, client_id, name= None, last_name = None, phone = None):
+    # Same dynamic pattern as update_appointment
+    def update_client(self, client_id, name=None, last_name=None, phone=None):
         params = []
-        fields = [] 
+        fields = []
         if name is not None:
             fields.append("name = ?")
-            params.append(name) 
-        if last_name is not None: 
+            params.append(name)
+        if last_name is not None:
             fields.append("last_name = ?")
             params.append(last_name)
         if phone is not None:
             phone = normalize_phone(phone)
-            fields.append("phone = ?") 
+            fields.append("phone = ?")
             params.append(phone)
-        
+
         if not fields:
             return 0
-        
+
         param_list_str = ", ".join(fields)
         query = f"UPDATE clients SET {param_list_str} WHERE client_id = ? "
         params.append(client_id)
@@ -148,9 +163,51 @@ class DatabaseManager:
         return self.cursor.rowcount
 
 
+    def get_day_appointments(self):
+        # Returns all appointments for today with client info (JOIN).
+        # Uses .astimezone() to read the local time from the PC, not UTC.
+        today = datetime.now().astimezone().date().isoformat()
+        self.cursor.execute("""
+            SELECT appointments.appointment_id,
+                   clients.name, clients.phone,
+                   appointments.appointment_date, appointments.appointment_time, appointments.service
+            FROM appointments
+            JOIN clients ON appointments.client_id = clients.client_id
+            WHERE appointment_date = ?
+            ORDER BY appointment_time
+        """, (today,))
+        return self.cursor.fetchall()
 
-        
+    def get_appointments_left_today(self):
+        # Returns appointments for today that haven't happened yet (time >= now).
+        local = datetime.now().astimezone()
+        today = local.date().isoformat()
+        current_time = local.strftime("%H:%M:%S")
+        self.cursor.execute("""
+            SELECT appointments.appointment_id,
+                   clients.name, clients.phone,
+                   appointments.appointment_date, appointments.appointment_time, appointments.service
+            FROM appointments
+            JOIN clients ON appointments.client_id = clients.client_id
+            WHERE appointment_date = ? AND appointment_time >= ?
+            ORDER BY appointment_time
+        """, (today, current_time))
+        return self.cursor.fetchall()
 
-
-
+    def get_all_appointments_left(self):
+        # Returns: today's remaining appointments + all future days.
+        # OR condition: (today AND time not passed) OR (any day strictly after today).
+        local = datetime.now().astimezone()
+        today = local.date().isoformat()
+        current_time = local.strftime("%H:%M:%S")
+        self.cursor.execute("""
+            SELECT appointments.appointment_id,
+                   clients.name, clients.phone,
+                   appointments.appointment_date, appointments.appointment_time, appointments.service
+            FROM appointments
+            JOIN clients ON appointments.client_id = clients.client_id
+            WHERE (appointment_date = ? AND appointment_time >= ?) OR appointment_date > ?
+            ORDER BY appointment_date, appointment_time
+        """, (today, current_time, today))
+        return self.cursor.fetchall()
 

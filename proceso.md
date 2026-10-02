@@ -4,7 +4,7 @@ Mi objetivo con este proyecto es ir construyendo el backend en Python (FastAPI) 
 ## Día 1
 
 - Aprendí qué es un entorno virtual (`venv`) y creé el de este proyecto (`barberShopFAPI_React/`).
-- Escribí a mano `init_db.py` para crear la base de datos `peluqueria.db` con SQLite.
+- Escribí a mano `init_db.py`(borrado, actualmente database_manager.py) para crear la base de datos `peluqueria.db` con SQLite.
 - Diseñé el esquema de datos:
   - Tabla `clientes`: el teléfono es `TEXT NOT NULL UNIQUE` (el único campo obligatorio, ya que mi tío solo pone siempre el teléfono; nombre y apellido son opcionales).
   - Tabla `citas`: enlazada a `clientes` por `id_cliente` (clave foránea), con el servicio opcional y `recordatorio_enviado` a 0 por defecto.
@@ -34,3 +34,11 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Aprendí que el `id` del `WHERE` tiene que ir el último en la lista de `params`, que el `SET` se construye con `fields` (nombres de columna) y que hay que unirlo con `", ".join(fields)`.
 - Añadí `self.connection.row_factory = sqlite3.Row` en `connect()` para poder acceder a las columnas por nombre (`fila["phone"]`) en vez de por índice, lo que me ahorrará trabajo cuando llegue a FastAPI.
 - Verifiqué que el update parcial funciona, que sin cambios devuelve `0`, que un id inexistente devuelve `0` y que el `UNIQUE` del teléfono sigue protegiendo contra duplicados al editar.
+
+## Día 5
+- Desarrollé el menú interactivo CLI en `main.py` con tres funciones separadas: `show_menu()` (bucle principal con `try/except` para que un error no cierre el programa), `logic_menu()` (el `match` con la lógica de cada opción) y `print_appointments()` (función auxiliar que formatea e imprime cualquier lista de citas mostrando `[ID]`, fecha, hora, nombre, teléfono y servicio).
+- Implementé los seis casos del menú. Las opciones 3 (cancelar) y 4 (editar) primero muestran todas las citas con su ID antes de pedir el ID al usuario. La opción 4 usa `input().strip() or None` para que dejar un campo en blanco no machaque el valor existente (aprovecha el UPDATE dinámico del Día 4).
+- Añadí `db.create_tables()` y `db.close_connection()` al ciclo de vida: la BD se inicializa al arrancar y la conexión se cierra limpiamente al salir (opción 7).
+- Refactoricé los cuatro métodos de lectura de `database_manager.py` para que todos usen JOIN y devuelvan siempre las mismas columnas: `appointment_id`, `name`, `phone`, `appointment_date`, `appointment_time`, `service`. Antes tres de ellos hacían `SELECT *` de `appointments` sin datos del cliente. Incluir `appointment_id` en el SELECT era imprescindible para que el CLI pudiera mostrárselo al usuario.
+- Corregí tres bugs: (1) `input()` devuelve `str`, comparar con el entero `7` nunca salía del bucle; (2) typo de SQL (`EXIsdadadSTS`) que habría roto `create_tables()` con una BD nueva; (3) faltaba `return self.cursor.fetchall()` en `get_all_appointments_left()`.
+- Creé la carpeta `tests/` con `run_tests.py`, que usa su propia BD aislada (`test_peluqueria.db`, en `.gitignore`) y la recrea desde cero en cada ejecución para garantizar resultados reproducibles.
