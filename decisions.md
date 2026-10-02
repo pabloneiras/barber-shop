@@ -114,3 +114,24 @@ SQLite disables foreign key enforcement by default. To ensure data integrity, es
 - Data integrity is guaranteed at database level.
 - Attempting to delete a client with active appointments will raise an `IntegrityError`, protecting historical records.
 - Added complexity: code must now handle potential `IntegrityError` when attempting deletes or updates.
+
+---
+
+## ADR-006: Using local system time instead of UTC for date/time queries
+
+- **Status:** Accepted
+- **Date:** 2026-10-02
+
+### Context
+Three methods (`get_day_appointments`, `get_appointments_left_today`, `get_all_appointments_left`) need to compare the current date and time against values stored in the database. Python's `datetime.now()` returns the system time with no timezone info, which can differ from UTC depending on the machine.
+
+### Decision
+Use `datetime.now().astimezone()` to obtain the current local date and time including the system's timezone offset. Extract `.date().isoformat()` for the date (`YYYY-MM-DD`) and `.strftime("%H:%M:%S")` for the time, matching the format stored in the database.
+
+### Alternatives considered
+- **`datetime.utcnow()`:** rejected. The database stores times as entered by the barber (local time, no timezone). Comparing against UTC would produce wrong results during any hour where local time differs from UTC.
+- **`datetime.now()` without `.astimezone()`:** works on most systems but is not timezone-aware. Using `.astimezone()` makes the intent explicit and is safer across environments.
+
+### Consequences
+- Queries always use the machine's local clock, which matches the barber's working timezone.
+- If the application is ever moved to a server in a different timezone, the stored times and the comparison timezone must be kept consistent.

@@ -3,6 +3,7 @@ barberShopFAPI_React/
 
 # Archivos de base de datos
 barber_shop.db
+tests/test_barber_shop.db
 
 # Archivos temporales de Python
 __pycache__/
