@@ -1,5 +1,6 @@
 # Entorno virtual
-barberShopFAPI_React/
+.venv/
+barberShop/
 
 # Archivos de base de datos
 barber_shop.db
@@ -11,3 +12,5 @@ __pycache__/
 
 # Carpetas de configuración de VS Code
 .vscode/
+
+tmp.md

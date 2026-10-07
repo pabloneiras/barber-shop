@@ -2,7 +2,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from utils import normalize_phone
+from app.utils import normalize_phone
 
 
 class DatabaseManager:
@@ -13,7 +13,7 @@ class DatabaseManager:
 
     # creates the file if it doesn't exist
     def connect(self):
-        self.connection = sqlite3.connect(self.db_path)
+        self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
         # Set row_factory to sqlite3.Row: rows behave like dictionaries,
         # allowing access by column name (e.g., row['phone']) instead of index (row[0])
         self.connection.row_factory = sqlite3.Row
@@ -56,7 +56,9 @@ class DatabaseManager:
             (name, last_name, phone),
         )
         self.connection.commit()
-        return self.cursor.lastrowid  # returns the new client's id so we can chain it into insert_appointment
+        return (
+            self.cursor.lastrowid
+        )  # returns the new client's id so we can chain it into insert_appointment
 
     def insert_appointment(
         self, client_id, appointment_date, appointment_time, service=None
@@ -69,7 +71,9 @@ class DatabaseManager:
         self.connection.commit()
 
     def find_client(self, phone):
-        phone = normalize_phone(phone)  # normalize before searching so the format always matches
+        phone = normalize_phone(
+            phone
+        )  # normalize before searching so the format always matches
         self.cursor.execute("SELECT client_id FROM clients WHERE phone = ?", (phone,))
         client = self.cursor.fetchone()
         return client
@@ -80,7 +84,15 @@ class DatabaseManager:
         if client is not None:
             return client[0]  # client already exists: return its id
         else:
-            return self.insert_client(phone, name, last_name)  # new client: insert and return the new id
+            return self.insert_client(
+                phone, name, last_name
+            )  # new client: insert and return the new id
+
+    def get_appointment(self, appointment_id):
+        self.cursor.execute("SELECT * FROM clients JOIN appointments " \
+        "ON appointments.client_id = clients.client_id " \
+        "WHERE appointment_id = ?", (appointment_id,))
+        return self.cursor.fetchone()
 
     def get_appointments_with_client(self, client_id=None, date=None):
         # Query built in parts because filters are optional.
@@ -162,12 +174,16 @@ class DatabaseManager:
         self.connection.commit()
         return self.cursor.rowcount
 
+    def get_all_appointments(self):
+        self.cursor.execute("SELECT * FROM appointments ORDER BY appointment_date")
+        return self.cursor.fetchall()
 
     def get_day_appointments(self):
         # Returns all appointments for today with client info (JOIN).
         # Uses .astimezone() to read the local time from the PC, not UTC.
         today = datetime.now().astimezone().date().isoformat()
-        self.cursor.execute("""
+        self.cursor.execute(
+            """
             SELECT appointments.appointment_id,
                    clients.name, clients.phone,
                    appointments.appointment_date, appointments.appointment_time, appointments.service
@@ -175,7 +191,9 @@ class DatabaseManager:
             JOIN clients ON appointments.client_id = clients.client_id
             WHERE appointment_date = ?
             ORDER BY appointment_time
-        """, (today,))
+        """,
+            (today,),
+        )
         return self.cursor.fetchall()
 
     def get_appointments_left_today(self):
@@ -183,7 +201,8 @@ class DatabaseManager:
         local = datetime.now().astimezone()
         today = local.date().isoformat()
         current_time = local.strftime("%H:%M:%S")
-        self.cursor.execute("""
+        self.cursor.execute(
+            """
             SELECT appointments.appointment_id,
                    clients.name, clients.phone,
                    appointments.appointment_date, appointments.appointment_time, appointments.service
@@ -191,7 +210,9 @@ class DatabaseManager:
             JOIN clients ON appointments.client_id = clients.client_id
             WHERE appointment_date = ? AND appointment_time >= ?
             ORDER BY appointment_time
-        """, (today, current_time))
+        """,
+            (today, current_time),
+        )
         return self.cursor.fetchall()
 
     def get_all_appointments_left(self):
@@ -200,7 +221,8 @@ class DatabaseManager:
         local = datetime.now().astimezone()
         today = local.date().isoformat()
         current_time = local.strftime("%H:%M:%S")
-        self.cursor.execute("""
+        self.cursor.execute(
+            """
             SELECT appointments.appointment_id,
                    clients.name, clients.phone,
                    appointments.appointment_date, appointments.appointment_time, appointments.service
@@ -208,6 +230,7 @@ class DatabaseManager:
             JOIN clients ON appointments.client_id = clients.client_id
             WHERE (appointment_date = ? AND appointment_time >= ?) OR appointment_date > ?
             ORDER BY appointment_date, appointment_time
-        """, (today, current_time, today))
+        """,
+            (today, current_time, today),
+        )
         return self.cursor.fetchall()
-

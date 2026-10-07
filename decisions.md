@@ -135,3 +135,72 @@ Use `datetime.now().astimezone()` to obtain the current local date and time incl
 ### Consequences
 - Queries always use the machine's local clock, which matches the barber's working timezone.
 - If the application is ever moved to a server in a different timezone, the stored times and the comparison timezone must be kept consistent.
+
+---
+
+## ADR-007: Separation of Pydantic Schemas (Request vs Response vs Update)
+
+- **Status:** Accepted
+- **Date:** 2026-10-07
+
+### Context
+FastAPI uses Pydantic models for request validation and response serialization. Initially, it may seem simpler to use a single data model or loose endpoint parameters, but input constraints differ fundamentally from database outputs.
+
+### Decision
+Define distinct Pydantic models for each HTTP role:
+- `AppointmentCreate`: Schema for incoming creation requests (`POST`). Omits `appointment_id` because SQLite generates it automatically via `AUTOINCREMENT`.
+- `AppointmentResponse`: Schema for outgoing responses (`GET`). Includes `appointment_id` and all resolved client data (`name`, `phone`) produced by database `JOIN`s.
+- `AppointmentUpdate`: Schema for partial modifications (`PUT`/`PATCH`). Contains optional fields (`str | None = None`) so clients can update specific appointment details without resending immutable client information.
+
+### Alternatives considered
+- **Loose function arguments in route handlers:** rejected. FastAPI treats non-path primitive parameters as URL query parameters, forcing payload data into URLs rather than the HTTP request body.
+- **Single monolithic model:** rejected. Forces optional IDs on creation and complicates validation when updating.
+
+### Consequences
+- Clean separation between incoming payloads and outgoing JSON contracts.
+- Automatic interactive documentation in Swagger UI (`/docs`) with exact schemas.
+- Strict runtime data validation and sanitization.
+
+---
+
+## ADR-008: Enabling `check_same_thread=False` for SQLite with FastAPI
+
+- **Status:** Accepted
+- **Date:** 2026-10-07
+
+### Context
+FastAPI processes incoming requests concurrently across worker threads in its async threadpool. By default, Python's standard `sqlite3` library enforces single-thread affinity, raising `ProgrammingError: SQLite objects created in a thread can only be used in that same thread` when accessed across requests.
+
+### Decision
+Initialize the database connection with `sqlite3.connect(..., check_same_thread=False)` inside `DatabaseManager.connect()`, exposed through a centralized instance in `backend/src/app/database.py`.
+
+### Alternatives considered
+- **Creating a new connection per HTTP request via FastAPI dependency injection:** viable, but adds connection setup overhead and complexity for this single-user local deployment stage.
+- **Immediate migration to async SQLAlchemy:** rejected as unnecessary complexity at this stage of the project.
+
+### Consequences
+- Allows FastAPI route handlers running on multiple threads to safely query the shared database instance.
+- SQLite handles concurrent writes through its standard file-level locking mechanisms.
+
+---
+
+## ADR-009: RESTful URL path conventions for collection vs single-resource endpoints
+
+- **Status:** Accepted
+- **Date:** 2026-10-08
+
+### Context
+The backend API requires clear, predictable endpoint paths for creating, reading, updating, and deleting appointments.
+
+### Decision
+Follow standard REST conventions:
+- **Collection endpoint (`/appointments/`):** used for `POST` (creating a new appointment before any ID exists) and `GET` (listing appointments).
+- **Single-resource endpoint (`/appointments/{appointment_id}`):** used for operations on a specific, existing appointment (`GET`, `PUT`, `DELETE`), targeting the record explicitly via its path parameter.
+
+### Alternatives considered
+- **Passing IDs exclusively via query parameters (`/appointments?id=1`):** rejected to follow standard RESTful conventions.
+- **Including artificial IDs in `POST` requests:** rejected because the ID does not exist until inserted into the database.
+
+### Consequences
+- Follows industry-standard REST API conventions.
+- Clear distinction between collection-level and resource-level actions.

@@ -7,3 +7,4 @@ def normalize_phone(phone: str):
     if phone.startswith("+34"):
         phone = phone.replace("+34", "")
     return phone
+
