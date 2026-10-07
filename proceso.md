@@ -42,3 +42,39 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Refactoricé los cuatro métodos de lectura de `database_manager.py` para que todos usen JOIN y devuelvan siempre las mismas columnas: `appointment_id`, `name`, `phone`, `appointment_date`, `appointment_time`, `service`. Antes tres de ellos hacían `SELECT *` de `appointments` sin datos del cliente. Incluir `appointment_id` en el SELECT era imprescindible para que el CLI pudiera mostrárselo al usuario.
 - Corregí tres bugs: (1) `input()` devuelve `str`, comparar con el entero `7` nunca salía del bucle; (2) typo de SQL (`EXIsdadadSTS`) que habría roto `create_tables()` con una BD nueva; (3) faltaba `return self.cursor.fetchall()` en `get_all_appointments_left()`.
 - Creé la carpeta `tests/` con `run_tests.py`, que usa su propia BD aislada (`test_peluqueria.db`, en `.gitignore`) y la recrea desde cero en cada ejecución para garantizar resultados reproducibles.
+
+## Día 6: Reestructuración Modular y Arquitectura Inicial de FastAPI
+- Reorganicé la arquitectura del proyecto separando responsabilidades: creé la estructura modular `backend/src/app` (capa de datos y CLI) y `backend/src/api` (capa de controladores HTTP/FastAPI).
+- Diseñé `backend/src/app/database.py` para instanciar la conexión de forma centralizada (`db: DatabaseManager`) y resolviendo las rutas con `pathlib.Path(__file__).resolve()`.
+- Solucioné el bloqueo de concurrencia de SQLite en entornos web: por defecto, `sqlite3` prohíbe usar conexiones en hilos diferentes (`ProgrammingError`), pero FastAPI atiende peticiones en un pool de hilos asíncrono. Lo solucioné configurando `check_same_thread=False` en `connect()` (documentado en ADR-008).
+- Escribí los primeros endpoints de lectura en `backend/src/api/api.py` (`/`, `/appointments/today/left`, `/appointments/today/`, `/appointments/left` y `/appointments/clients/{client_id}`).
+- Creé el archivo `requirements.txt` con las dependencias fijadas del backend (`fastapi`, `uvicorn`, `pydantic`).
+
+## Día 7: Schemas con Pydantic, CRUD Completo en FastAPI y Conceptos Clave
+- Completé el ciclo **CRUD** completo en FastAPI (`POST` para crear citas, `PUT` para actualizarlas y `DELETE` para cancelarlas).
+- Diseñé y separé los tres Schemas principales de Pydantic según su responsabilidad (ADR-007):
+  - `AppointmentCreate`: para peticiones `POST` (no incluye `appointment_id` porque lo genera la BD con `AUTOINCREMENT`).
+  - `AppointmentResponse`: para respuestas `GET` (incluye `appointment_id` y todos los datos del cliente combinados por el `JOIN`).
+  - `AppointmentUpdate`: para peticiones `PUT` (con campos opcionales `= None` para no obligar al cliente a reenviar datos inmutables de cliente como teléfono o nombre al cambiar solo la hora o servicio).
+- **Conceptos clave y dudas más importantes resueltas durante este día:**
+  1. **La cadena de transformación `sqlite3.Row` ➔ `dict()` ➔ `BaseModel` ➔ JSON:**
+     - Aunque `row_factory = sqlite3.Row` permite acceder a los campos por nombre (`fila["name"]`), internamente es un objeto híbrido de C/Python, **no una instancia nativa de `dict`**.
+     - El serializador de FastAPI y Pydantic requiere tipos nativos de Python. Por eso es obligatorio hacer `[dict(row) for row in ...]` para empaquetarlo en diccionarios estándar que Pydantic sabe validar y traducir a texto JSON.
+  2. **Cómo entiende Pydantic los datos y flexibilidad de contenedores:**
+     - Para que Pydantic valide o instancie un `BaseModel`, la unidad de datos básica **debe ser un diccionario (`clave: valor`)**, porque empareja las claves del diccionario con los atributos de la clase.
+     - El contenedor exterior puede variar según el endpoint (`list[AppointmentResponse]`, `tuple[AppointmentResponse, ...]`, o un objeto individual `AppointmentResponse`), pero cada elemento interior debe tener estructura de clave-valor (`dict`).
+  3. **Dónde se escriben los Type Hints y dónde NUNCA:**
+     - Los tipos (`: str`, `: int`) solo se escriben en las **definiciones** de funciones (`def f(x: str):`) y en clases `BaseModel`.
+     - Al **llamar** a una función (como `db.update_appointment(appointment_id, date=...)`), **nunca** se ponen tipos (`: str` provoca `SyntaxError`). Solo se pasan valores o variables existentes.
+  4. **Parámetros sueltos vs Schemas `BaseModel` en el Request Body:**
+     - Si en un endpoint `POST` pones parámetros sueltos (`phone: str, name: str`), FastAPI los interpreta como **Query Parameters en la URL** (`/appointments/?phone=...`), exponiendo datos sensibles en logs y en el historial del navegador.
+     - Al usar una clase `BaseModel` (`appointment: AppointmentCreate`), FastAPI sabe que deben viajar en el **Cuerpo (Body) HTTP en formato JSON**, protegidos y validados de golpe antes de ejecutar la función.
+  5. **Diseño de URLs REST (Colección vs Recurso Individual):**
+     - `POST /appointments/`: la cita **aún no existe** ni tiene ID asignado; por eso la petición apunta a la colección general para que la base de datos la inserte y le asigne su ID autoincremental.
+     - `GET /appointments/{id}`, `PUT /appointments/{id}`, `DELETE /appointments/{id}`: la cita **ya existe** en la base de datos con una clave primaria única; por tanto, la URL debe identificar exactamente sobre qué registro físico se va a operar.
+  6. **Lógica de negocio en la creación de citas:**
+     - Al crear una cita llamamos a `db.get_or_create_client(phone, name, last_name)`. Este método comprueba si el cliente ya existe y, si no, lo registra automáticamente en la tabla `clients`. Por tanto, **el cliente se da de alta automáticamente al pedir su cita**, sin necesidad de un formulario o endpoint separado de clientes, lo que da pleno sentido al endpoint de historial por cliente (`/appointments/clients/{client_id}`).
+- Añadí `CORSMiddleware` a `api.py` para permitir peticiones HTTP desde el frontend de React (`localhost:5173`) sin bloqueos por política de mismo origen del navegador.
+- Corregí `get_appointment()` en `database_manager.py` añadiendo `return self.cursor.fetchone()` que faltaba.
+- Adapté las rutas de importación de `tests/run_tests.py` y `backend/src/app/main.py` para ser compatibles con la nueva estructura de paquetes, logrando que el 100% de la suite de pruebas unitarias pase con éxito (`ALL TESTS COMPLETED`).
+

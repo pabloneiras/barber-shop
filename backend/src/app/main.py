@@ -1,6 +1,11 @@
+import sys
 from pathlib import Path
 
-from database_manager import DatabaseManager
+# Ensure backend/src is on sys.path so app package resolves when run directly
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from app.database_manager import DatabaseManager
+
 
 
 def show_menu(db: DatabaseManager):
@@ -25,9 +30,11 @@ def print_appointments(rows):
         print("No hay citas.")
         return
     for row in rows:
-        name    = row["name"] or "Sin nombre"
+        name = row["name"] or "Sin nombre"
         service = row["service"] or "Sin servicio"
-        print(f"  [ID {row['appointment_id']}] {row['appointment_date']} {row['appointment_time']} | {name} ({row['phone']}) | {service}")
+        print(
+            f"  [ID {row['appointment_id']}] {row['appointment_date']} {row['appointment_time']} | {name} ({row['phone']}) | {service}"
+        )
 
 
 def logic_menu(option, db: DatabaseManager):
@@ -41,7 +48,9 @@ def logic_menu(option, db: DatabaseManager):
             appointment_date, appointment_time, service = input(
                 "Introduce dia (YYYY-MM-DD), hora (HH:MM) y servicio separados por espacios: "
             ).split(" ")
-            db.insert_appointment(client_id, appointment_date, appointment_time, service)
+            db.insert_appointment(
+                client_id, appointment_date, appointment_time, service
+            )
             print("Cita guardada.")
 
         case "2":
@@ -56,11 +65,18 @@ def logic_menu(option, db: DatabaseManager):
         case "4":
             print_appointments(db.get_appointments_with_client())
             appointment_id = input("ID de la cita a editar: ")
-            date    = input("Nueva fecha (YYYY-MM-DD) o Enter para no cambiar: ").strip() or None
-            time    = input("Nueva hora (HH:MM) o Enter para no cambiar: ").strip() or None
+            date = (
+                input("Nueva fecha (YYYY-MM-DD) o Enter para no cambiar: ").strip()
+                or None
+            )
+            time = input("Nueva hora (HH:MM) o Enter para no cambiar: ").strip() or None
             service = input("Nuevo servicio o Enter para no cambiar: ").strip() or None
             updated = db.update_appointment(appointment_id, date, time, service)
-            print("Cita actualizada." if updated else "No se encontro esa cita o no hubo cambios.")
+            print(
+                "Cita actualizada."
+                if updated
+                else "No se encontro esa cita o no hubo cambios."
+            )
 
         case "5":
             print_appointments(db.get_appointments_left_today())
