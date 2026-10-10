@@ -1,29 +1,30 @@
 /* ========================================================
-   BASE DESIGN TOKENS & RESET
-   Global dark theme variables, typography, and box reset
+   BARBER SHOP — MONOCHROME EDITORIAL SUITE
+   Black & White Minimalist Design / Swiss Barber Ledger
    ======================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
 :root {
-  /* Dark monochrome palette */
   --bg: #09090b;
+  --bg-subtle: #121215;
   --bg-card: #18181b;
   --bg-card-hover: #222226;
   --border: #27272a;
   --border-strong: #3f3f46;
+  --border-focus: #fafafa;
 
-  /* Text colors */
   --text-pure: #ffffff;
   --text-muted: #a1a1aa;
   --text-dim: #71717a;
 
-  /* Typography */
-  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --accent-white: #fafafa;
+  --accent-black: #09090b;
+
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
 }
 
-/* Universal box sizing and margin reset */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -34,37 +35,28 @@ body {
   background-color: var(--bg);
   color: var(--text-pure);
   font-family: var(--font-sans);
-  line-height: 1.5;
+  line-height: 1.45;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Central app shell container */
-.app-container {
-  max-width: 1200px;
+/* Base Container */
+.app-shell {
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1.25rem 1.5rem 3rem 1.5rem;
 }
-
 
 /* ========================================================
-   TOP BAR & HEADER
-   Minimalist editorial top bar, status pills, and tab nav
+   HEADER — Minimalist Editorial Bar
    ======================================================== */
-
 .top-bar {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  padding-bottom: 1.5rem;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.top-bar-main {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   gap: 1rem;
 }
@@ -76,50 +68,33 @@ body {
 }
 
 .brand-logo {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid var(--border-strong);
 }
 
-.brand-text {
-  display: flex;
-  flex-direction: column;
-}
-
 .brand-title {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: -0.04em;
   text-transform: uppercase;
   color: var(--text-pure);
-  line-height: 1.1;
 }
 
 .brand-tag {
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  color: var(--text-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
   text-transform: uppercase;
-  margin-top: 3px;
 }
 
 .top-bar-actions {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.date-badge {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  padding: 0.4rem 0.75rem;
-  text-transform: capitalize;
 }
 
 .status-badge {
@@ -143,13 +118,32 @@ body {
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
 }
 
+.btn-primary {
+  background-color: var(--accent-white);
+  color: var(--accent-black);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--accent-white);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-sans);
+}
+
+.btn-primary:hover {
+  background-color: transparent;
+  color: var(--text-pure);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border);
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  padding: 0.55rem 0.9rem;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -158,300 +152,783 @@ body {
 
 .btn-ghost:hover {
   color: var(--text-pure);
-  border-color: var(--border-strong);
+  border-color: var(--border-focus);
 }
 
-.tab-navigation {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+/* ========================================================
+   MAIN WORKSPACE DUAL-PANE LAYOUT
+   Left: Day Timeline | Right: Month Calendar + WA Engine
+   ======================================================== */
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 390px;
+  gap: 2rem;
+  align-items: start;
 }
 
-.tab-btn {
-  background: transparent;
-  color: var(--text-muted);
+@media (max-width: 1024px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================================
+   PANE 1: DAY TIMELINE (Lista de horas de arriba a abajo)
+   ======================================================== */
+.timeline-pane {
+  background-color: var(--bg-subtle);
   border: 1px solid var(--border);
-  font-family: var(--font-sans);
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
+  padding: 1.5rem;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid var(--border);
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.timeline-date-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  color: var(--text-pure);
+}
+
+.timeline-day-stats {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Slots List */
+.slots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Slot Row */
+.slot-row {
+  display: grid;
+  grid-template-columns: 75px 1fr;
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 68px;
+}
+
+.slot-time-col {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background-color: var(--bg);
+  letter-spacing: -0.02em;
+}
+
+.slot-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.tab-btn:hover {
+.slot-empty:hover {
+  border-color: var(--text-muted);
   color: var(--text-pure);
-  border-color: var(--border-strong);
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
-.tab-btn.active {
-  background-color: var(--text-pure);
-  color: var(--bg);
+.btn-book-slot {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.slot-empty:hover .btn-book-slot {
+  background: var(--text-pure);
+  color: var(--accent-black);
   border-color: var(--text-pure);
 }
 
-/* Placeholder for main view components */
-.tab-placeholder {
-  border: 1px dashed var(--border);
-  padding: 3rem;
-  text-align: center;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
+/* Booked Slot Card */
+.slot-booked {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-left: 4px solid var(--text-pure);
+  padding: 0.85rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  transition: border-color 0.15s ease;
 }
 
+.slot-booked:hover {
+  border-color: var(--text-pure);
+}
+
+.booked-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.booked-client {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--text-pure);
+}
+
+.booked-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.booked-phone {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.booked-service {
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-pure);
+}
+
+/* WhatsApp Automation Badge */
+.wa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid;
+}
+
+.wa-badge-sent {
+  background-color: var(--text-pure);
+  color: var(--accent-black);
+  border-color: var(--text-pure);
+  font-weight: 700;
+}
+
+.wa-badge-pending {
+  background-color: transparent;
+  color: var(--text-muted);
+  border-color: var(--border-strong);
+}
+
+.booked-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-slot-action {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.4rem 0.65rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.15s ease;
+}
+
+.btn-slot-action:hover {
+  background: var(--text-pure);
+  color: var(--accent-black);
+  border-color: var(--text-pure);
+}
+
+.btn-slot-delete:hover {
+  background: #ffffff;
+  color: #000000;
+  border-color: #ffffff;
+}
 
 /* ========================================================
-   AGENDA & APPOINTMENT CARDS
-   Toolbar, responsive grid, card states, and actions
+   PANE 2: MONTH CALENDAR (Ventana Secundaria)
    ======================================================== */
-
-.agenda-section {
+.sidebar-pane {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.section-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.filter-group {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  background: transparent;
-  color: var(--text-muted);
+.calendar-card {
+  background-color: var(--bg-subtle);
   border: 1px solid var(--border);
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.45rem 0.85rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  transition: all 0.15s ease;
-}
-
-.filter-btn:hover {
-  color: var(--text-pure);
-  border-color: var(--border-strong);
-}
-
-.filter-btn.active {
-  background-color: var(--text-pure);
-  color: var(--bg);
-  border-color: var(--text-pure);
-}
-
-.date-picker-inline {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.input-field-compact {
-  background-color: var(--bg-card);
-  color: var(--text-pure);
-  border: 1px solid var(--border);
-  padding: 0.35rem 0.6rem;
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-}
-
-.btn-primary {
-  background-color: var(--text-pure);
-  color: var(--bg);
-  border: 1px solid var(--text-pure);
-  font-family: var(--font-sans);
-  font-size: 0.8rem;
-  font-weight: 700;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  transition: all 0.15s ease;
-}
-
-.btn-primary:hover {
-  background-color: transparent;
-  color: var(--text-pure);
-}
-
-/* Empty State */
-.empty-state {
-  border: 1px dashed var(--border);
-  padding: 4rem 2rem;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.empty-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-pure);
-}
-
-.empty-desc {
-  font-size: 0.85rem;
-  color: var(--text-dim);
-  max-width: 400px;
-}
-
-/* Appointments Grid Layout */
-.appointments-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  gap: 1.25rem;
-}
-
-/* Appointment Card */
-.appointment-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   padding: 1.25rem;
-  transition: border-color 0.15s ease;
 }
 
-.appointment-card:hover {
-  border-color: var(--border-strong);
-}
-
-.card-past {
-  opacity: 0.55;
-}
-
-.card-header {
+.calendar-nav-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.time-badge {
-  font-family: var(--font-mono);
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--text-pure);
+.calendar-month-label {
+  font-size: 1.05rem;
+  font-weight: 800;
   letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--text-pure);
 }
 
-.badge {
+.calendar-arrow-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-pure);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: var(--font-mono);
+  transition: all 0.15s ease;
+}
+
+.calendar-arrow-btn:hover {
+  background: var(--text-pure);
+  color: var(--accent-black);
+}
+
+/* Calendar Grid */
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.weekday-header {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 0.25rem 0;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.calendar-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  position: relative;
+  transition: all 0.12s ease;
+}
+
+.calendar-day-cell:hover:not(.day-empty) {
+  border-color: var(--text-pure);
+  color: var(--text-pure);
+}
+
+.calendar-day-cell.day-empty {
+  opacity: 0.15;
+  cursor: default;
+  border-color: transparent;
+}
+
+/* Active / Selected Day */
+.calendar-day-cell.day-selected {
+  background-color: var(--text-pure);
+  color: var(--accent-black);
+  border-color: var(--text-pure);
+  font-weight: 800;
+}
+
+/* Today indicator */
+.calendar-day-cell.day-today::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  background-color: var(--text-pure);
+  border-radius: 50%;
+}
+
+.calendar-day-cell.day-selected.day-today::after {
+  background-color: var(--accent-black);
+}
+
+/* Appointments indicator dot / badge */
+.day-appt-count {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  margin-top: 2px;
+  background-color: var(--border-strong);
+  color: var(--text-pure);
+  border-radius: 2px;
+}
+
+.day-selected .day-appt-count {
+  background-color: var(--accent-black);
+  color: var(--text-pure);
+}
+
+/* ========================================================
+   WHATSAPP AUTOMATION ENGINE CARD
+   ======================================================== */
+.wa-engine-card {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.wa-engine-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-pure);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.wa-engine-badge {
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.25rem 0.55rem;
-  border: 1px solid var(--border);
-}
-
-.badge-active {
-  color: var(--text-pure);
-  border-color: var(--border-strong);
-}
-
-.badge-past {
-  color: var(--text-dim);
-  border-color: var(--border);
-}
-
-.card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-bottom: 1.25rem;
-}
-
-.client-name {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--text-pure);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.client-contact {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--border-strong);
   color: var(--text-muted);
 }
 
-.service-info {
-  margin-top: 0.5rem;
+.wa-engine-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.4;
 }
 
-.service-pill {
+.wa-rule-box {
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.75rem;
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--text-muted);
-  background-color: var(--bg);
-  border: 1px solid var(--border);
-  padding: 0.25rem 0.6rem;
-  display: inline-block;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.card-footer {
   display: flex;
-  gap: 0.5rem;
-  border-top: 1px solid var(--border);
-  padding-top: 0.75rem;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.btn-action {
-  flex: 1;
+.wa-rule-highlight {
+  color: var(--text-pure);
+  font-weight: 700;
+}
+
+.btn-run-wa {
   background: transparent;
-  border: 1px solid var(--border);
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.4rem 0.5rem;
-  cursor: pointer;
+  color: var(--text-pure);
+  border: 1px solid var(--text-pure);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.65rem 1rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  cursor: pointer;
+  letter-spacing: 0.05em;
   transition: all 0.15s ease;
+  margin-top: 0.25rem;
 }
 
-.btn-edit {
+.btn-run-wa:hover {
+  background: var(--text-pure);
+  color: var(--accent-black);
+}
+
+/* ========================================================
+   MODAL DIALOG (Nueva Cita / Editar Cita)
+   ======================================================== */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1.5rem;
+}
+
+.modal-box {
+  background-color: var(--bg-card);
+  border: 2px solid var(--text-pure);
+  width: 100%;
+  max-width: 480px;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
+}
+
+.modal-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+}
+
+.modal-box-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  cursor: pointer;
+  font-family: var(--font-mono);
+}
+
+.modal-close:hover {
   color: var(--text-pure);
 }
 
-.btn-edit:hover {
-  background-color: var(--bg-card-hover);
-  border-color: var(--border-strong);
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.btn-cancel {
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.field-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.field-input {
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-pure);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
+  font-family: var(--font-sans);
+  border-radius: 0;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.field-input:focus {
+  border-color: var(--text-pure);
+}
+
+.field-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.quick-services-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.btn-chip-mono {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.btn-chip-mono:hover {
+  border-color: var(--text-pure);
+  color: var(--text-pure);
+}
+
+.modal-actions-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+/* ========================================================
+   TOAST NOTIFICATIONS
+   ======================================================== */
+.toast-bar {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--text-pure);
+  color: var(--accent-black);
+  padding: 0.85rem 1.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  border: 1px solid var(--text-pure);
+  animation: toastFade 0.2s ease-out;
+}
+
+@keyframes toastFade {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 15px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ========================================================
+   AUTOCOMPLETE DROPDOWN & CLIENT RECOGNITION
+   ======================================================== */
+.autocomplete-container {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-card);
+  border: 1px solid var(--text-pure);
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.9);
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 2px;
+}
+
+.autocomplete-item {
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+  background-color: var(--text-pure);
+  color: var(--accent-black);
+}
+
+.ac-client-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ac-client-name {
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.ac-client-phone {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  opacity: 0.8;
+}
+
+.ac-client-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+.ac-visits-tag {
+  border: 1px solid currentColor;
+  padding: 0.1rem 0.35rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.ac-last-service {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+/* Banner when regular client is selected */
+.client-recognized-banner {
+  background-color: var(--bg);
+  border: 1px solid var(--text-pure);
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-pure);
+}
+
+.btn-clear-recognized {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-decoration: underline;
+}
+
+.btn-clear-recognized:hover {
+  color: var(--text-pure);
+}
+
+/* ========================================================
+   SIDEBAR SUMMARY CARD
+   ======================================================== */
+.sidebar-info-card {
+  margin-top: 1.5rem;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-info-title {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text-dim);
 }
 
-.btn-cancel:hover:not(:disabled) {
-  color: #ef4444;
-  border-color: #ef4444;
+.sidebar-info-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
-.btn-cancel:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.sidebar-info-stat .stat-num {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-pure);
+}
+
+.sidebar-info-stat .stat-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.sidebar-info-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.booked-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }

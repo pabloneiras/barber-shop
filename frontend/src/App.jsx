@@ -1,48 +1,111 @@
 import { useState, useEffect, useCallback } from "react";
 import Header from "./components/Header";
 import AgendaToday from "./components/AgendaToday";
+import CalendarSidebar from "./components/CalendarSidebar";
+import BookingModal from "./components/BookingModal";
 import { api } from "./services/api";
 
-export default function App() {
-  const [currentTab, setCurrentTab] = useState("agenda");
-  const [appointments, setAppointments] = useState([]);
-  const [filterMode, setFilterMode] = useState("today-all");
-  const [customDate, setCustomDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
-  const [loading, setLoading] = useState(false);
+// Returns current local date formatted as YYYY-MM-DD
+function getTodayISO() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
 
-  // Load appointments from FastAPI backend based on selected filter mode
-  const loadAppointments = useCallback(async () => {
+export default function App() {
+  const [selectedDate, setSelectedDate] = useState(getTodayISO);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    mode: "create",
+    data: null,
+  });
+
+  // Fetch appointments for the selected date from FastAPI
+  const loadAppointments = useCallback(async (date) => {
     setLoading(true);
     try {
-      if (filterMode === "today-all") {
-        const data = await api.getTodayAppointments();
-        setAppointments(data);
-      } else if (filterMode === "today-left") {
-        const data = await api.getTodayRemainingAppointments();
-        setAppointments(data);
-      } else if (filterMode === "custom-date") {
-        const data = await api.getTodayAppointments();
-        setAppointments(data);
-      }
+      const data = await api.getAppointmentsByDate(date);
+      setAppointments(data);
     } catch (err) {
       console.error("Failed to load appointments:", err);
+      setAppointments([]);
     } finally {
       setLoading(false);
     }
-  }, [filterMode, customDate]);
+  }, []);
 
-  // Fetch appointments on mount and when filter changes
+  // Reload appointments whenever the selected calendar date changes
   useEffect(() => {
-    loadAppointments();
-  }, [loadAppointments]);
+    loadAppointments(selectedDate);
+  }, [selectedDate, loadAppointments]);
 
-  // Handle appointment deletion and refresh list
-  const handleDeleteAppointment = async (id) => {
+  // Open modal to schedule a new appointment at a specific time slot
+  const handleOpenNewModal = (time = "10:00") => {
+    setModalState({
+      isOpen: true,
+      mode: "create",
+      data: {
+        phone: "",
+        name: "",
+        last_name: "",
+        appointment_date: selectedDate,
+        appointment_time: time,
+        service: "Corte de pelo",
+      },
+    });
+  };
+
+  // Open modal in edit mode with existing appointment data
+  const handleOpenEditModal = (appointment) => {
+    setModalState({
+      isOpen: true,
+      mode: "edit",
+      data: {
+        appointment_id: appointment.appointment_id,
+        phone: appointment.phone || "",
+        name: appointment.name || "",
+        last_name: appointment.last_name || "",
+        appointment_date: appointment.appointment_date,
+        appointment_time: appointment.appointment_time,
+        service: appointment.service || "",
+      },
+    });
+  };
+
+  // Close the active modal dialog
+  const handleCloseModal = () => {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  // Process form submission for both create and update operations
+  const handleSubmitModal = async (formData) => {
+    if (modalState.mode === "create") {
+      await api.createAppointment(formData);
+    } else if (modalState.mode === "edit" && modalState.data?.appointment_id) {
+      await api.updateAppointment(modalState.data.appointment_id, {
+        appointment_date: formData.appointment_date,
+        appointment_time: formData.appointment_time,
+        service: formData.service,
+      });
+    }
+
+    // Refresh appointment list for the currently viewed date
+    await loadAppointments(selectedDate);
+  };
+
+  // Delete an appointment after user confirmation
+  const handleDeleteAppointment = async (id, clientName) => {
+    const displayName = clientName || "este cliente";
+    const confirmed = window.confirm(`¿Cancelar la cita de ${displayName}?`);
+    if (!confirmed) return;
+
     try {
       await api.deleteAppointment(id);
-      await loadAppointments();
+      await loadAppointments(selectedDate);
     } catch (err) {
       console.error("Failed to delete appointment:", err);
       alert(err.message || "Error al eliminar la cita");
@@ -50,39 +113,32 @@ export default function App() {
   };
 
   return (
-    <div className="app-container">
-      <Header
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        onRefresh={loadAppointments}
-      />
+    <div className="app-shell">
+      <Header onNewClick={() => handleOpenNewModal("10:00")} />
 
-      <main className="main-content">
-        {currentTab === "agenda" && (
-          <AgendaToday
-            appointments={appointments}
-            filterMode={filterMode}
-            setFilterMode={setFilterMode}
-            customDate={customDate}
-            setCustomDate={setCustomDate}
-            onEdit={(appt) => console.log("Editar cita:", appt)}
-            onDelete={handleDeleteAppointment}
-            onNewAppointmentClick={() => setCurrentTab("new")}
-          />
-        )}
+      <main className="workspace-grid">
+        <AgendaToday
+          appointments={appointments}
+          selectedDate={selectedDate}
+          onEdit={handleOpenEditModal}
+          onDelete={handleDeleteAppointment}
+          onBookSlot={(time) => handleOpenNewModal(time)}
+        />
 
-        {currentTab === "new" && (
-          <div className="tab-placeholder">
-            <p>Formulario de Nueva Cita (siguiente paso)</p>
-          </div>
-        )}
-
-        {currentTab === "upcoming" && (
-          <div className="tab-placeholder">
-            <p>Vista de Todas las Citas Futuras (siguiente paso)</p>
-          </div>
-        )}
+        <CalendarSidebar
+          selectedDate={selectedDate}
+          setSelectedDate={setSelectedDate}
+          appointmentsCount={appointments.length}
+        />
       </main>
+
+      <BookingModal
+        isOpen={modalState.isOpen}
+        mode={modalState.mode}
+        initialData={modalState.data}
+        onClose={handleCloseModal}
+        onSubmit={handleSubmitModal}
+      />
     </div>
   );
 }
