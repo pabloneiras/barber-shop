@@ -117,8 +117,8 @@ def fapi_get_appointment(appointment_id: int):
 @app.post("/appointments/")
 def fapi_intert_post_appointment(appointment: AppointmentCreate):
     client_id = db.get_or_create_client(appointment.phone, appointment.name, appointment.last_name)
-    db.insert_appointment(client_id, appointment.appointment_date, appointment.appointment_time, appointment.service)
-    return {"mensaje": "cita creada correctamente"}
+    appointment_id = db.insert_appointment(client_id, appointment.appointment_date, appointment.appointment_time, appointment.service)
+    return {"mensaje": "cita creada correctamente", "appointment_id": appointment_id}
 
 
 # Update (PUT): targets {appointment_id} in the URL because it modifies a specific existing appointment.

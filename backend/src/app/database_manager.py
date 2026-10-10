@@ -41,6 +41,17 @@ class DatabaseManager:
         ON UPDATE CASCADE
         ON DELETE RESTRICT)
         """)
+
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS whatsapp_reminders(
+        appointment_id INTEGER PRIMARY KEY,
+        task_name TEXT,
+        send_at TEXT NOT NULL,
+        status TEXT NOT NULL,
+        FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE)
+        """)
         self.connection.commit()
 
     def close_connection(self):
@@ -69,6 +80,7 @@ class DatabaseManager:
             (client_id, appointment_date, appointment_time, service),
         )
         self.connection.commit()
+        return self.cursor.lastrowid
 
     def find_client(self, phone):
         phone = normalize_phone(
@@ -257,3 +269,49 @@ class DatabaseManager:
             (today, current_time, today),
         )
         return self.cursor.fetchall()
+
+    def upsert_reminder(self, appointment_id: int, send_at: str, status: str, task_name: str | None = None):
+        # Inserts or updates a WhatsApp reminder record for an appointment.
+        self.cursor.execute(
+            """
+            INSERT INTO whatsapp_reminders (appointment_id, task_name, send_at, status)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(appointment_id) DO UPDATE SET
+                task_name = excluded.task_name,
+                send_at = excluded.send_at,
+                status = excluded.status
+            """,
+            (appointment_id, task_name, send_at, status),
+        )
+        self.connection.commit()
+
+    def get_reminder(self, appointment_id: int):
+        # Retrieves the WhatsApp reminder associated with an appointment ID.
+        self.cursor.execute(
+            "SELECT * FROM whatsapp_reminders WHERE appointment_id = ?",
+            (appointment_id,),
+        )
+        return self.cursor.fetchone()
+
+    def update_reminder_status(self, appointment_id: int, status: str, task_name: str | None = None):
+        # Updates status and optionally task_name for an existing reminder.
+        if task_name is not None:
+            self.cursor.execute(
+                "UPDATE whatsapp_reminders SET status = ?, task_name = ? WHERE appointment_id = ?",
+                (status, task_name, appointment_id),
+            )
+        else:
+            self.cursor.execute(
+                "UPDATE whatsapp_reminders SET status = ? WHERE appointment_id = ?",
+                (status, appointment_id),
+            )
+        self.connection.commit()
+
+    def delete_reminder(self, appointment_id: int):
+        # Deletes a reminder record manually.
+        self.cursor.execute(
+            "DELETE FROM whatsapp_reminders WHERE appointment_id = ?",
+            (appointment_id,),
+        )
+        self.connection.commit()
+
