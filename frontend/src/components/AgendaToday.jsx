@@ -15,6 +15,31 @@ const WEEKDAY_NAMES = [
   "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
 ];
 
+// Formats a YYYY-MM-DD date string into localized Spanish header text (e.g., "Sábado, 10 de Octubre de 2026")
+function formatDateToSpanishTitle(isoDateString) {
+  const [sYear, sMonth, sDay] = isoDateString.split("-").map(Number);
+  const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
+  const dayName = WEEKDAY_NAMES[selectedDateObj.getDay()];
+  const monthName = MONTH_NAMES[selectedDateObj.getMonth()];
+  return `${dayName}, ${sDay} de ${monthName} de ${sYear}`;
+}
+
+// Indexes an appointment array into an object keyed by appointment_time for O(1) slot lookup
+function buildAppointmentsTimeIndex(appointmentsList) {
+  const map = {};
+  appointmentsList.forEach((appointment) => {
+    map[appointment.appointment_time] = appointment;
+  });
+  return map;
+}
+
+// Combines standard shop working hours with any custom appointment times into a sorted, unique time array
+function mergeStandardWithBookedTimeSlots(appointmentsByTimeMap) {
+  return Array.from(
+    new Set([...STANDARD_SLOTS, ...Object.keys(appointmentsByTimeMap)])
+  ).sort();
+}
+
 // Vertical day timeline ledger displaying scheduled appointment slots and available times.
 export default function AgendaToday({
   appointments,
@@ -23,25 +48,10 @@ export default function AgendaToday({
   onDelete,
   onBookSlot,
 }) {
-  // Format selected date header in Spanish
-  const [sYear, sMonth, sDay] = selectedDate.split("-").map(Number);
-  const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
-  const dayName = WEEKDAY_NAMES[selectedDateObj.getDay()];
-  const monthName = MONTH_NAMES[selectedDateObj.getMonth()];
-  const formattedDayTitle = `${dayName}, ${sDay} de ${monthName} de ${sYear}`;
-
-  // Map appointments by start time
-  const apptMap = {};
-  appointments.forEach((a) => {
-    apptMap[a.appointment_time] = a;
-  });
-
-  // Combine standard work slots and existing appointments
-  const allSlots = Array.from(
-    new Set([...STANDARD_SLOTS, ...Object.keys(apptMap)])
-  ).sort();
-
-  const totalAppointments = appointments.length;
+  const formattedDayTitle = formatDateToSpanishTitle(selectedDate);
+  const appointmentsByTimeMap = buildAppointmentsTimeIndex(appointments);
+  const allChronologicalSlots = mergeStandardWithBookedTimeSlots(appointmentsByTimeMap);
+  const totalAppointmentsCount = appointments.length;
 
   return (
     <section className="timeline-pane">
@@ -49,39 +59,51 @@ export default function AgendaToday({
         <div>
           <h2 className="timeline-date-title">{formattedDayTitle}</h2>
           <div className="timeline-day-stats">
-            {totalAppointments === 0
+            {totalAppointmentsCount === 0
               ? "SIN CITAS REGISTRADAS"
-              : `${totalAppointments} ${totalAppointments === 1 ? "CITA REGISTRADA" : "CITAS REGISTRADAS"}`}
+              : `${totalAppointmentsCount} ${totalAppointmentsCount === 1 ? "CITA REGISTRADA" : "CITAS REGISTRADAS"}`}
           </div>
         </div>
-        <button className="btn-ghost" onClick={() => onBookSlot("10:00")}>
+        <button
+          type="button"
+          className="btn-ghost"
+          onClick={() => onBookSlot("10:00")}
+        >
           + Agendar en este día
         </button>
       </div>
 
       <div className="slots-container">
-        {allSlots.map((time) => {
-          const appt = apptMap[time];
+        {allChronologicalSlots.map((timeSlot) => {
+          const appointmentAtSlot = appointmentsByTimeMap[timeSlot];
 
-          if (appt) {
+          if (appointmentAtSlot) {
             const clientFullName = (
-              appt.name
-                ? `${appt.name} ${appt.last_name || ""}`
+              appointmentAtSlot.name
+                ? `${appointmentAtSlot.name} ${appointmentAtSlot.last_name || ""}`
                 : "Cliente sin nombre"
             ).trim();
 
             return (
-              <div key={appt.appointment_id || time} className="slot-row">
-                <div className="slot-time-col">{time}</div>
+              <div
+                key={appointmentAtSlot.appointment_id || timeSlot}
+                className="slot-row"
+              >
+                <div className="slot-time-col">{timeSlot}</div>
                 <div className="slot-booked">
                   <div className="booked-main">
                     <div className="booked-client">{clientFullName}</div>
                     <div className="booked-meta">
-                      <a href={`tel:${appt.phone}`} className="booked-phone">
-                        {appt.phone}
+                      <a
+                        href={`tel:${appointmentAtSlot.phone}`}
+                        className="booked-phone"
+                      >
+                        {appointmentAtSlot.phone}
                       </a>
-                      {appt.service && (
-                        <span className="booked-service">{appt.service}</span>
+                      {appointmentAtSlot.service && (
+                        <span className="booked-service">
+                          {appointmentAtSlot.service}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -90,7 +112,7 @@ export default function AgendaToday({
                     <button
                       type="button"
                       className="btn-slot-edit"
-                      onClick={() => onEdit(appt)}
+                      onClick={() => onEdit(appointmentAtSlot)}
                       title="Editar cita"
                     >
                       Editar
@@ -98,7 +120,9 @@ export default function AgendaToday({
                     <button
                       type="button"
                       className="btn-slot-cancel"
-                      onClick={() => onDelete(appt.appointment_id, clientFullName)}
+                      onClick={() =>
+                        onDelete(appointmentAtSlot.appointment_id, clientFullName)
+                      }
                       title="Cancelar cita"
                     >
                       Cancelar
@@ -110,11 +134,12 @@ export default function AgendaToday({
           }
 
           return (
-            <div key={time} className="slot-row">
-              <div className="slot-time-col">{time}</div>
+            <div key={timeSlot} className="slot-row">
+              <div className="slot-time-col">{timeSlot}</div>
               <button
+                type="button"
                 className="slot-empty"
-                onClick={() => onBookSlot(time)}
+                onClick={() => onBookSlot(timeSlot)}
               >
                 <span>Hueco Disponible</span>
                 <span className="btn-book-slot">+ Reservar</span>

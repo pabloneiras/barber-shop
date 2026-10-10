@@ -5,8 +5,8 @@ import CalendarSidebar from "./components/CalendarSidebar";
 import BookingModal from "./components/BookingModal";
 import { api } from "./services/api";
 
-// Returns current local date formatted as YYYY-MM-DD
-function getTodayISO() {
+// Returns the current local calendar date formatted as an ISO YYYY-MM-DD string
+function getTodayLocalDateISOString() {
   const today = new Date();
   const yyyy = today.getFullYear();
   const mm = String(today.getMonth() + 1).padStart(2, "0");
@@ -15,7 +15,7 @@ function getTodayISO() {
 }
 
 export default function App() {
-  const [selectedDate, setSelectedDate] = useState(getTodayISO);
+  const [selectedDate, setSelectedDate] = useState(getTodayLocalDateISOString);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalState, setModalState] = useState({
@@ -24,8 +24,8 @@ export default function App() {
     data: null,
   });
 
-  // Fetch appointments for the selected date from FastAPI
-  const loadAppointments = useCallback(async (date) => {
+  // Fetches appointments for a specific calendar date from FastAPI backend
+  const fetchAppointmentsForDate = useCallback(async (date) => {
     setLoading(true);
     try {
       const data = await api.getAppointmentsByDate(date);
@@ -38,13 +38,13 @@ export default function App() {
     }
   }, []);
 
-  // Reload appointments whenever the selected calendar date changes
+  // Triggers backend fetch whenever the user selects a new calendar date
   useEffect(() => {
-    loadAppointments(selectedDate);
-  }, [selectedDate, loadAppointments]);
+    fetchAppointmentsForDate(selectedDate);
+  }, [selectedDate, fetchAppointmentsForDate]);
 
-  // Open modal to schedule a new appointment at a specific time slot
-  const handleOpenNewModal = (time = "10:00") => {
+  // Launches modal in creation mode prefilled with the selected date and clicked time slot
+  const openNewBookingModalForSlot = (time = "10:00") => {
     setModalState({
       isOpen: true,
       mode: "create",
@@ -59,8 +59,8 @@ export default function App() {
     });
   };
 
-  // Open modal in edit mode with existing appointment data
-  const handleOpenEditModal = (appointment) => {
+  // Launches modal in edit mode prefilled with an existing appointment's current data
+  const openEditBookingModalForAppointment = (appointment) => {
     setModalState({
       isOpen: true,
       mode: "edit",
@@ -76,13 +76,13 @@ export default function App() {
     });
   };
 
-  // Close the active modal dialog
-  const handleCloseModal = () => {
+  // Hides the appointment dialog modal and clears its active state
+  const closeBookingModal = () => {
     setModalState((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // Process form submission for both create and update operations
-  const handleSubmitModal = async (formData) => {
+  // Handles modal form submit: calls POST for new appointments or PUT for edits, then reloads day data
+  const handleSaveAppointmentFromModal = async (formData) => {
     if (modalState.mode === "create") {
       await api.createAppointment(formData);
     } else if (modalState.mode === "edit" && modalState.data?.appointment_id) {
@@ -93,19 +93,19 @@ export default function App() {
       });
     }
 
-    // Refresh appointment list for the currently viewed date
-    await loadAppointments(selectedDate);
+    // Refresh appointments list for the currently selected date
+    await fetchAppointmentsForDate(selectedDate);
   };
 
-  // Delete an appointment after user confirmation
-  const handleDeleteAppointment = async (id, clientName) => {
+  // Confirms deletion with the user, calls DELETE on FastAPI, and refreshes the timeline
+  const cancelAppointmentWithConfirmation = async (id, clientName) => {
     const displayName = clientName || "este cliente";
     const confirmed = window.confirm(`¿Cancelar la cita de ${displayName}?`);
     if (!confirmed) return;
 
     try {
       await api.deleteAppointment(id);
-      await loadAppointments(selectedDate);
+      await fetchAppointmentsForDate(selectedDate);
     } catch (err) {
       console.error("Failed to delete appointment:", err);
       alert(err.message || "Error al eliminar la cita");
@@ -114,15 +114,15 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <Header onNewClick={() => handleOpenNewModal("10:00")} />
+      <Header onNewClick={() => openNewBookingModalForSlot("10:00")} />
 
       <main className="workspace-grid">
         <AgendaToday
           appointments={appointments}
           selectedDate={selectedDate}
-          onEdit={handleOpenEditModal}
-          onDelete={handleDeleteAppointment}
-          onBookSlot={(time) => handleOpenNewModal(time)}
+          onEdit={openEditBookingModalForAppointment}
+          onDelete={cancelAppointmentWithConfirmation}
+          onBookSlot={(time) => openNewBookingModalForSlot(time)}
         />
 
         <CalendarSidebar
@@ -136,8 +136,8 @@ export default function App() {
         isOpen={modalState.isOpen}
         mode={modalState.mode}
         initialData={modalState.data}
-        onClose={handleCloseModal}
-        onSubmit={handleSubmitModal}
+        onClose={closeBookingModal}
+        onSubmit={handleSaveAppointmentFromModal}
       />
     </div>
   );
