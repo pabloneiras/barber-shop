@@ -105,6 +105,10 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
   - Endpoint `GET /clients/search?q={query}` en `backend/src/api/api.py` consumiendo `db.search_clients()`.
   - Consulta optimizada en SQLite que recupera visitas acumuladas (`visits_count`) y el último servicio contratado (`last_service`).
   - Autocompletado con un solo clic de teléfono, nombre, apellidos y servicio preferido, junto con distintivo visual de reconocimiento de cliente habitual.
+- **Refactorización y Claridad del Frontend**:
+  - Renombrado de funciones y variables hacia nombres autoexplicativos (`populateFormWithSelectedClient`, `resetRecognizedClientSelection`, `handleAppointmentFormSubmit`, `navigateMonthByOffset`, `formatDateToSpanishTitle`, `buildAppointmentsTimeIndex`, `mergeStandardWithBookedTimeSlots`, etc.).
+  - Documentación con comentarios `//` sobre todas las operaciones asíncronas, antirrebotes, ajustes de calendario y transformaciones de estructuras de datos.
+
 
 
 
