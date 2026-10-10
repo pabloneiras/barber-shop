@@ -109,6 +109,15 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
   - Renombrado de funciones y variables hacia nombres autoexplicativos (`populateFormWithSelectedClient`, `resetRecognizedClientSelection`, `handleAppointmentFormSubmit`, `navigateMonthByOffset`, `formatDateToSpanishTitle`, `buildAppointmentsTimeIndex`, `mergeStandardWithBookedTimeSlots`, etc.).
   - Documentación con comentarios `//` sobre todas las operaciones asíncronas, antirrebotes, ajustes de calendario y transformaciones de estructuras de datos.
 
+# Fase Automatización: Recordatorios de WhatsApp (Meta Cloud API + Google Cloud Tasks)
+- **Persistencia en SQLite (`whatsapp_reminders`)**:
+  - Incorporación de la tabla `whatsapp_reminders` en `Database/peluqueria.db` con clave foránea en cascada (`ON DELETE CASCADE`) ligada a `appointments(appointment_id)`.
+  - Columnas: `appointment_id (PK)`, `task_name (TEXT)`, `send_at (TEXT ISO UTC)` y `status (TEXT: pendiente | programado | cancelado | enviado)`.
+  - Modificación de `insert_appointment` en `DatabaseManager` para devolver `self.cursor.lastrowid`, permitiendo asociar de inmediato la cita recién insertada con su recordatorio.
+  - Implementación de métodos CRUD especializados para recordatorios: `upsert_reminder()`, `get_reminder()`, `update_reminder_status()` y `delete_reminder()`.
+  - Captura y devolución del `appointment_id` generado en la respuesta de `POST /appointments/` en FastAPI.
+
+
 
 
 
