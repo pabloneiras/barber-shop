@@ -31,6 +31,14 @@
   padding: 0;
 }
 
+button {
+  font-family: inherit;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
 body {
   background-color: var(--bg);
   color: var(--text-pure);
@@ -359,31 +367,51 @@ body {
 .booked-actions {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.6rem;
 }
 
-.btn-slot-action {
+.btn-slot-edit,
+.btn-action.btn-edit {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  padding: 0.4rem 0.65rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
+  padding: 0.45rem 0.85rem;
+  background-color: var(--bg);
+  border: 1px solid var(--border-strong);
+  color: var(--text-pure);
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.btn-slot-action:hover {
-  background: var(--text-pure);
+.btn-slot-edit:hover,
+.btn-action.btn-edit:hover {
+  background-color: var(--text-pure);
   color: var(--accent-black);
   border-color: var(--text-pure);
 }
 
-.btn-slot-delete:hover {
-  background: #ffffff;
-  color: #000000;
-  border-color: #ffffff;
+.btn-slot-cancel,
+.btn-action.btn-cancel {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.45rem 0.85rem;
+  background-color: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-slot-cancel:hover,
+.btn-action.btn-cancel:hover {
+  color: #ff5555;
+  border-color: #ff5555;
+  background-color: rgba(255, 85, 85, 0.08);
 }
 
 /* ========================================================
@@ -442,6 +470,7 @@ body {
 .calendar-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
   text-align: center;
   margin-bottom: 0.5rem;
 }
@@ -452,23 +481,24 @@ body {
   font-weight: 700;
   color: var(--text-dim);
   text-transform: uppercase;
-  padding: 0.25rem 0;
+  padding: 0.35rem 0;
 }
 
 .calendar-days-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 4px;
 }
 
-.calendar-day-cell {
+.calendar-day-cell,
+.calendar-day {
   aspect-ratio: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background-color: var(--bg) !important;
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 0.85rem;
@@ -476,40 +506,56 @@ body {
   color: var(--text-muted);
   position: relative;
   transition: all 0.12s ease;
+  outline: none;
+  border-radius: 0;
+  padding: 0;
 }
 
-.calendar-day-cell:hover:not(.day-empty) {
+.calendar-day-cell:hover:not(.day-empty):not(.empty),
+.calendar-day:hover:not(.empty):not(.day-empty) {
   border-color: var(--text-pure);
   color: var(--text-pure);
+  background-color: var(--bg-card-hover) !important;
 }
 
-.calendar-day-cell.day-empty {
-  opacity: 0.15;
+.calendar-day-cell.day-empty,
+.calendar-day.empty {
+  opacity: 0;
   cursor: default;
   border-color: transparent;
+  background-color: transparent !important;
+  pointer-events: none;
 }
 
 /* Active / Selected Day */
-.calendar-day-cell.day-selected {
-  background-color: var(--text-pure);
-  color: var(--accent-black);
-  border-color: var(--text-pure);
+.calendar-day-cell.day-selected,
+.calendar-day.selected {
+  background-color: var(--text-pure) !important;
+  color: var(--accent-black) !important;
+  border-color: var(--text-pure) !important;
   font-weight: 800;
 }
 
 /* Today indicator */
-.calendar-day-cell.day-today::after {
+.calendar-day-cell.day-today,
+.calendar-day.today {
+  border-color: var(--border-strong);
+  color: var(--text-pure);
+}
+
+.calendar-day-cell.day-today::after,
+.calendar-day.today::after {
   content: "";
   position: absolute;
-  top: 3px;
-  right: 3px;
+  bottom: 4px;
   width: 4px;
   height: 4px;
   background-color: var(--text-pure);
   border-radius: 50%;
 }
 
-.calendar-day-cell.day-selected.day-today::after {
+.calendar-day-cell.day-selected.day-today::after,
+.calendar-day.selected.today::after {
   background-color: var(--accent-black);
 }
 
