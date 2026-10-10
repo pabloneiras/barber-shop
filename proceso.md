@@ -78,3 +78,10 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Corregí `get_appointment()` en `database_manager.py` añadiendo `return self.cursor.fetchone()` que faltaba.
 - Adapté las rutas de importación de `tests/run_tests.py` y `backend/src/app/main.py` para ser compatibles con la nueva estructura de paquetes, logrando que el 100% de la suite de pruebas unitarias pase con éxito (`ALL TESTS COMPLETED`).
 
+## Día 8: Inicialización del Frontend y Cliente API (React + Vite)
+- Reorganización de todo el historial de commits del repositorio adoptando el estándar internacional **Conventional Commits** (`chore:`, `feat(database):`, `refactor(database):`, `feat(cli):`, `feat(api):`, `chore(frontend):`).
+- Inicialicé la aplicación cliente de React con Vite (`chore(frontend): scaffold React project with Vite template`).
+- Diseñé el cliente HTTP centralizado en `frontend/src/services/api.js` (`async function` declaradas explícitamente, función envoltorio `request` y todos los comentarios en inglés).
+- Configuré los tokens de diseño mínimos y reseteo en `frontend/src/index.css` (48 líneas) para un crecimiento incremental componente a componente.
+
+
