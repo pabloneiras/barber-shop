@@ -99,6 +99,8 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
   - Flujo completo de altas, actualizaciones y cancelaciones con recarga automática reactiva.
 - **Identidad Visual y Estilo**:
   - Paleta monocromática estricta de alto contraste (`#09090b`, `#18181b`, `#27272a`, `#fafafa`), tipografía de ingeniería (`JetBrains Mono` y `Plus Jakarta Sans`) y ausencia total de iconos o emojis para una estética limpia, profesional y editorial.
+  - Reseteo global de elementos `<button>` para eliminar los estilos nativos grises del navegador, unificación de selectores de clase (`.btn-slot-edit`, `.btn-slot-cancel`, `.calendar-day-cell`), alineación de cuadrícula con `gap: 4px` y estilización de días vacíos como celdas transparentes invisibles.
+
 
 
 
