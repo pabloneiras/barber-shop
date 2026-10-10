@@ -44,10 +44,30 @@ class AppointmentUpdate(BaseModel):
     service: str | None = None
 
 
+# Autocomplete search response schema for clients
+class ClientSearchResponse(BaseModel):
+    client_id: int
+    phone: str
+    name: str | None = None
+    last_name: str | None = None
+    visits_count: int = 0
+    last_service: str | None = None
+
+
+
 # Health check: verifies that the FastAPI service is running.
 @app.get("/")
 def root():
     return {"message": "API de Barber Shop funcionando"}
+
+
+# Searches clients by substring query for autocompletion.
+@app.get("/clients/search", response_model=list[ClientSearchResponse])
+def fapi_search_clients(q: str = ""):
+    if not q or not q.strip():
+        return []
+    return [dict(row) for row in db.search_clients(q.strip())]
+
 
 
 # Retrieves remaining appointments scheduled for today from the current time onward.

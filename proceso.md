@@ -100,6 +100,12 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - **Identidad Visual y Estilo**:
   - Paleta monocromática estricta de alto contraste (`#09090b`, `#18181b`, `#27272a`, `#fafafa`), tipografía de ingeniería (`JetBrains Mono` y `Plus Jakarta Sans`) y ausencia total de iconos o emojis para una estética limpia, profesional y editorial.
   - Reseteo global de elementos `<button>` para eliminar los estilos nativos grises del navegador, unificación de selectores de clase (`.btn-slot-edit`, `.btn-slot-cancel`, `.calendar-day-cell`), alineación de cuadrícula con `gap: 4px` y estilización de días vacíos como celdas transparentes invisibles.
+- **Autocompletado Reactivo de Clientes Habituales (`BookingModal.jsx` + FastAPI)**:
+  - Búsqueda en vivo con efecto antirrebote (*debounced*) al escribir el número de teléfono o nombre.
+  - Endpoint `GET /clients/search?q={query}` en `backend/src/api/api.py` consumiendo `db.search_clients()`.
+  - Consulta optimizada en SQLite que recupera visitas acumuladas (`visits_count`) y el último servicio contratado (`last_service`).
+  - Autocompletado con un solo clic de teléfono, nombre, apellidos y servicio preferido, junto con distintivo visual de reconocimiento de cliente habitual.
+
 
 
 

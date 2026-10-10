@@ -88,6 +88,29 @@ class DatabaseManager:
                 phone, name, last_name
             )  # new client: insert and return the new id
 
+    def search_clients(self, query: str, limit: int = 10):
+        # Searches clients matching query substring by phone, name, or last name.
+        clean_query = query.strip()
+        if not clean_query:
+            return []
+
+        search_pattern = f"%{clean_query}%"
+        sql = """
+            SELECT c.client_id, c.phone, c.name, c.last_name,
+                   (SELECT COUNT(*) FROM appointments a WHERE a.client_id = c.client_id) AS visits_count,
+                   (SELECT a.service 
+                    FROM appointments a 
+                    WHERE a.client_id = c.client_id 
+                    ORDER BY a.appointment_date DESC, a.appointment_time DESC 
+                    LIMIT 1) AS last_service
+            FROM clients c
+            WHERE c.phone LIKE ? OR c.name LIKE ? OR c.last_name LIKE ?
+            ORDER BY visits_count DESC, c.name ASC
+            LIMIT ?
+        """
+        self.cursor.execute(sql, (search_pattern, search_pattern, search_pattern, limit))
+        return self.cursor.fetchall()
+
     def get_appointment(self, appointment_id):
         self.cursor.execute("SELECT * FROM clients JOIN appointments " \
         "ON appointments.client_id = clients.client_id " \

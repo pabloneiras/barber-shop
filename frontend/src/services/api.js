@@ -68,6 +68,14 @@ export async function getClientAppointments(clientId) {
   return request(`/appointments/clients/${clientId}`);
 }
 
+// Searches clients by phone or name substring for live autocompletion.
+// Calls GET /clients/search?q={query} on the FastAPI server.
+export async function searchClients(query) {
+  if (!query || !query.trim()) return [];
+  return request(`/clients/search?q=${encodeURIComponent(query.trim())}`);
+}
+
+
 // Sends new appointment payload to create a record in the database.
 // Calls POST /appointments/ with JSON body matching AppointmentCreate schema.
 export async function createAppointment(appointmentData) {
@@ -103,6 +111,7 @@ export const api = {
   getUpcomingAppointments,
   getAppointmentById,
   getClientAppointments,
+  searchClients,
   createAppointment,
   updateAppointment,
   deleteAppointment,

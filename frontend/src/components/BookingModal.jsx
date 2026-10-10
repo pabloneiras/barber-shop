@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { api } from "../services/api";
 
 // Modal dialog for booking new appointments and editing existing ones.
 export default function BookingModal({
@@ -19,6 +20,12 @@ export default function BookingModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Client autocompletion state
+  const [suggestions, setSuggestions] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [recognizedClient, setRecognizedClient] = useState(null);
+  const dropdownRef = useRef(null);
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -31,11 +38,62 @@ export default function BookingModal({
         service: initialData.service || "Corte de pelo",
       });
     }
+    setSuggestions([]);
+    setShowDropdown(false);
+    setRecognizedClient(null);
+    setError(null);
   }, [initialData, isOpen]);
+
+  // Debounced live client search triggered by typing in the phone field
+  useEffect(() => {
+    if (mode !== "create" || recognizedClient) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const cleanQuery = formData.phone.trim();
+    if (cleanQuery.length < 2) {
+      setSuggestions([]);
+      setShowDropdown(false);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const results = await api.searchClients(cleanQuery);
+        setSuggestions(results);
+        setShowDropdown(results.length > 0);
+      } catch (err) {
+        console.error("Failed to autocomplete clients:", err);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [formData.phone, mode, recognizedClient]);
 
   if (!isOpen) return null;
 
   const isEdit = mode === "edit";
+
+  // Select an existing client from the suggestions list and populate inputs
+  const handleSelectClient = (client) => {
+    setFormData((prev) => ({
+      ...prev,
+      phone: client.phone,
+      name: client.name || "",
+      last_name: client.last_name || "",
+      service: client.last_service || prev.service,
+    }));
+    setRecognizedClient(client);
+    setSuggestions([]);
+    setShowDropdown(false);
+  };
+
+  // Reset recognized client selection to allow manual editing
+  const handleClearRecognized = () => {
+    setRecognizedClient(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -81,20 +139,81 @@ export default function BookingModal({
         {error && <div className="toast-bar">{error}</div>}
 
         <form onSubmit={handleSubmit} className="modal-form-body">
+          {recognizedClient && (
+            <div className="client-recognized-banner">
+              <span>
+                Cliente habitual: <strong>{recognizedClient.name} {recognizedClient.last_name || ""}</strong>
+              </span>
+              <button
+                type="button"
+                className="btn-clear-recognized"
+                onClick={handleClearRecognized}
+              >
+                Cambiar
+              </button>
+            </div>
+          )}
+
           <div className="field-group">
             <label className="field-label">Teléfono *</label>
-            <input
-              name="phone"
-              type="tel"
-              className="field-input"
-              placeholder="Teléfono del cliente (ej. 600112233)"
-              value={formData.phone}
-              onChange={(e) =>
-                setFormData({ ...formData, phone: e.target.value })
-              }
-              required
-              autoFocus
-            />
+            <div className="autocomplete-container" ref={dropdownRef}>
+              <input
+                name="phone"
+                type="tel"
+                className="field-input"
+                placeholder="Teléfono del cliente (ej. 600112233)"
+                value={formData.phone}
+                onChange={(e) => {
+                  setFormData({ ...formData, phone: e.target.value });
+                  if (recognizedClient) setRecognizedClient(null);
+                }}
+                onFocus={() => {
+                  if (suggestions.length > 0) setShowDropdown(true);
+                }}
+                onBlur={() => {
+                  // Small delay to allow onMouseDown on suggestion item to complete
+                  setTimeout(() => setShowDropdown(false), 200);
+                }}
+                required
+                autoFocus
+                autoComplete="off"
+              />
+
+              {showDropdown && suggestions.length > 0 && (
+                <div className="autocomplete-dropdown">
+                  {suggestions.map((client) => {
+                    const clientFullName = (
+                      client.name
+                        ? `${client.name} ${client.last_name || ""}`
+                        : "Cliente sin nombre"
+                    ).trim();
+
+                    return (
+                      <div
+                        key={client.client_id}
+                        className="autocomplete-item"
+                        onMouseDown={() => handleSelectClient(client)}
+                      >
+                        <div className="ac-client-info">
+                          <span className="ac-client-name">{clientFullName}</span>
+                          <span className="ac-client-phone">{client.phone}</span>
+                        </div>
+                        <div className="ac-client-meta">
+                          {client.visits_count > 0 && (
+                            <span className="ac-visits-tag">
+                              {client.visits_count} {client.visits_count === 1 ? "visita" : "visitas"}
+                            </span>
+                          )}
+                          {client.last_service && (
+                            <span className="ac-last-service">{client.last_service}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="field-row-2">
