@@ -62,6 +62,13 @@ def fapi_get_all_appointments_today():
     return [dict(row) for row in db.get_day_appointments()]
 
 
+# Retrieves all appointments scheduled for a specific date (YYYY-MM-DD).
+@app.get("/appointments/date/{appointment_date}", response_model=list[AppointmentResponse])
+def fapi_get_appointments_by_date(appointment_date: str):
+    return [dict(row) for row in db.get_appointments_with_client(date=appointment_date)]
+
+
+
 # Retrieves all pending appointments from the current moment into the future.
 @app.get("/appointments/left")
 def fapi_get_all_appointments_left():

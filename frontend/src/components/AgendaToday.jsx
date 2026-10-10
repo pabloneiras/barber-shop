@@ -1,157 +1,126 @@
-import React, { useState } from "react";
+import React from "react";
 
-// Component that displays today's appointments schedule.
-// Handles time-based visual distinction (active vs past) and item actions.
+const STANDARD_SLOTS = [
+  "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "12:00", "12:30", "13:00", "13:30",
+  "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00"
+];
+
+const MONTH_NAMES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+];
+
+const WEEKDAY_NAMES = [
+  "Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"
+];
+
+// Vertical day timeline ledger displaying scheduled appointment slots and available times.
 export default function AgendaToday({
   appointments,
-  filterMode,
-  setFilterMode,
-  customDate,
-  setCustomDate,
+  selectedDate,
   onEdit,
   onDelete,
-  onNewAppointmentClick,
+  onBookSlot,
 }) {
-  const [deletingId, setDeletingId] = useState(null);
+  // Format selected date header in Spanish
+  const [sYear, sMonth, sDay] = selectedDate.split("-").map(Number);
+  const selectedDateObj = new Date(sYear, sMonth - 1, sDay);
+  const dayName = WEEKDAY_NAMES[selectedDateObj.getDay()];
+  const monthName = MONTH_NAMES[selectedDateObj.getMonth()];
+  const formattedDayTitle = `${dayName}, ${sDay} de ${monthName} de ${sYear}`;
 
-  // Handle appointment cancellation with browser confirmation
-  const handleDelete = async (id, clientName) => {
-    const confirmMessage = `¿Cancelar la cita de ${clientName || "este cliente"}?`;
-    if (window.confirm(confirmMessage)) {
-      setDeletingId(id);
-      try {
-        await onDelete(id);
-      } finally {
-        setDeletingId(null);
-      }
-    }
-  };
+  // Map appointments by start time
+  const apptMap = {};
+  appointments.forEach((a) => {
+    apptMap[a.appointment_time] = a;
+  });
 
-  // Current system time formatted as HH:MM for time comparisons
-  const now = new Date();
-  const currentHours = String(now.getHours()).padStart(2, "0");
-  const currentMinutes = String(now.getMinutes()).padStart(2, "0");
-  const currentTimeString = `${currentHours}:${currentMinutes}`;
+  // Combine standard work slots and existing appointments
+  const allSlots = Array.from(
+    new Set([...STANDARD_SLOTS, ...Object.keys(apptMap)])
+  ).sort();
+
+  const totalAppointments = appointments.length;
 
   return (
-    <section className="agenda-section">
-      <div className="section-toolbar">
-        <div className="filter-group">
-          <button
-            className={`filter-btn ${filterMode === "today-all" ? "active" : ""}`}
-            onClick={() => setFilterMode("today-all")}
-          >
-            Todas de Hoy
-          </button>
-          <button
-            className={`filter-btn ${filterMode === "today-left" ? "active" : ""}`}
-            onClick={() => setFilterMode("today-left")}
-          >
-            Solo Restantes
-          </button>
-          <button
-            className={`filter-btn ${filterMode === "custom-date" ? "active" : ""}`}
-            onClick={() => setFilterMode("custom-date")}
-          >
-            Por Fecha
-          </button>
-        </div>
-
-        {filterMode === "custom-date" && (
-          <div className="date-picker-inline">
-            <label htmlFor="custom-date-input">Fecha:</label>
-            <input
-              id="custom-date-input"
-              type="date"
-              value={customDate}
-              onChange={(e) => setCustomDate(e.target.value)}
-              className="input-field-compact"
-            />
+    <section className="timeline-pane">
+      <div className="timeline-header">
+        <div>
+          <h2 className="timeline-date-title">{formattedDayTitle}</h2>
+          <div className="timeline-day-stats">
+            {totalAppointments === 0
+              ? "SIN CITAS REGISTRADAS"
+              : `${totalAppointments} ${totalAppointments === 1 ? "CITA REGISTRADA" : "CITAS REGISTRADAS"}`}
           </div>
-        )}
-
-        <button className="btn-primary" onClick={onNewAppointmentClick}>
-          Nueva Cita
+        </div>
+        <button className="btn-ghost" onClick={() => onBookSlot("10:00")}>
+          + Agendar en este día
         </button>
       </div>
 
-      {appointments.length === 0 ? (
-        <div className="empty-state">
-          <h3 className="empty-title">Sin Citas Registradas</h3>
-          <p className="empty-desc">
-            {filterMode === "today-left"
-              ? "No quedan más citas pendientes por atender hoy."
-              : "No se han encontrado citas para el filtro seleccionado."}
-          </p>
-          <button className="btn-ghost" onClick={onNewAppointmentClick}>
-            Crear Nueva Cita
-          </button>
-        </div>
-      ) : (
-        <div className="appointments-grid">
-          {appointments.map((appt) => {
-            const isPast =
-              filterMode !== "custom-date" &&
-              appt.appointment_time < currentTimeString;
+      <div className="slots-container">
+        {allSlots.map((time) => {
+          const appt = apptMap[time];
+
+          if (appt) {
+            const clientFullName = (
+              appt.name
+                ? `${appt.name} ${appt.last_name || ""}`
+                : "Cliente sin nombre"
+            ).trim();
 
             return (
-              <div
-                key={appt.appointment_id}
-                className={`appointment-card ${isPast ? "card-past" : "card-active"}`}
-              >
-                <div className="card-header">
-                  <div className="time-badge">
-                    <span>{appt.appointment_time}</span>
-                  </div>
-                  {isPast ? (
-                    <span className="badge badge-past">Completada</span>
-                  ) : (
-                    <span className="badge badge-active">Pendiente</span>
-                  )}
-                </div>
-
-                <div className="card-body">
-                  <h3 className="client-name">
-                    {appt.name
-                      ? `${appt.name} ${appt.last_name || ""}`.trim()
-                      : "Cliente Sin Nombre"}
-                  </h3>
-
-                  <div className="client-contact">
-                    <span>{appt.phone}</span>
+              <div key={appt.appointment_id || time} className="slot-row">
+                <div className="slot-time-col">{time}</div>
+                <div className="slot-booked">
+                  <div className="booked-main">
+                    <div className="booked-client">{clientFullName}</div>
+                    <div className="booked-meta">
+                      <a href={`tel:${appt.phone}`} className="booked-phone">
+                        {appt.phone}
+                      </a>
+                      {appt.service && (
+                        <span className="booked-service">{appt.service}</span>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="service-info">
-                    <span className="service-pill">
-                      {appt.service || "Corte Estándar"}
-                    </span>
+                  <div className="booked-actions">
+                    <button
+                      className="btn-action btn-edit"
+                      onClick={() => onEdit(appt)}
+                      title="Editar cita"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn-action btn-cancel"
+                      onClick={() => onDelete(appt.appointment_id, clientFullName)}
+                      title="Cancelar cita"
+                    >
+                      Cancelar
+                    </button>
                   </div>
-                </div>
-
-                <div className="card-footer">
-                  <button
-                    className="btn-action btn-edit"
-                    onClick={() => onEdit(appt)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    className="btn-action btn-cancel"
-                    disabled={deletingId === appt.appointment_id}
-                    onClick={() =>
-                      handleDelete(appt.appointment_id, appt.name)
-                    }
-                  >
-                    {deletingId === appt.appointment_id
-                      ? "Cancelando..."
-                      : "Cancelar"}
-                  </button>
                 </div>
               </div>
             );
-          })}
-        </div>
-      )}
+          }
+
+          return (
+            <div key={time} className="slot-row">
+              <div className="slot-time-col">{time}</div>
+              <button
+                className="slot-empty"
+                onClick={() => onBookSlot(time)}
+              >
+                <span>Hueco Disponible</span>
+                <span className="btn-book-slot">+ Reservar</span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }

@@ -82,16 +82,24 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Reorganización de todo el historial de commits del repositorio adoptando el estándar internacional **Conventional Commits** (`chore:`, `feat(database):`, `refactor(database):`, `feat(cli):`, `feat(api):`, `chore(frontend):`).
 - Inicialicé la aplicación cliente de React con Vite (`chore(frontend): scaffold React project with Vite template`).
 - Diseñé el cliente HTTP centralizado en `frontend/src/services/api.js` (`async function` declaradas explícitamente, función envoltorio `request` y todos los comentarios en inglés).
-- Configuré los tokens de diseño mínimos y reseteo en `frontend/src/index.css` (48 líneas) para un crecimiento incremental componente a componente.
+- Configuré los tokens de diseño mínimos y reseteo en `frontend/src/index.css` para un crecimiento incremental componente a componente.
 
-## Fase Frontend: Interfaz Visual y Componentes Modulares (React + Vite)
-- **Cabecera y Marca (`Header.jsx`)**: Incorporación de la barra superior tipográfica con el emblema oficial circular de la barbería (`logo.jpg`), fecha formateada dinámicamente en español mediante `Intl.DateTimeFormat` y navegación por pestañas (*Agenda de Hoy*, *Nueva Cita*, *Todas las Citas*).
-- **Agenda Diaria y Tarjetas de Cita (`AgendaToday.jsx`)**:
-  - Cuadrícula responsiva que consume directamente los datos de `GET /appointments/today/`.
-  - Transformación declarativa de listas de objetos a elementos visuales mediante `.map()` y uso de claves únicas obligatorias (`key={appt.appointment_id}`).
-  - Lógica de evaluación temporal en el cliente (`appt.appointment_time < currentTimeString`) para marcar visualmente citas completadas (atenuadas) frente a pendientes (destacadas).
-  - Flujo de cancelación en vivo mediante `DELETE /appointments/{id}` con confirmación del navegador y recarga de memoria sin parpadeos.
-- **Estilos Modulares Incrementales**: Crecimiento progresivo de `frontend/src/index.css` a medida que se añaden componentes, manteniendo comentarios en inglés y una estética monocromática minimalista sin iconos ni emojis.
+# Fase Frontend: Interfaz Visual y Componentes Modulares (React + Vite)
+- **Cabecera y Marca (`Header.jsx`)**: Incorporación de la barra superior tipográfica con el emblema oficial circular de la barbería (`logo.jpg`), insignia de conexión en vivo con FastAPI (`127.0.0.1:8000`) y botón de acceso directo `+ Nueva Cita`.
+- **Estructura en Doble Panel (`workspace-grid`)**:
+  - **Línea de Tiempo Diaria (`AgendaToday.jsx`)**: Cuadrícula cronológica vertical con franjas horarias estándar (de 09:00 a 20:00). Las franjas reservadas muestran nombre y apellidos del cliente, teléfono enlazado (`tel:`), servicio contratado y botones de acción rápida (`Editar`, `Cancelar`). Las franjas libres muestran estado disponible con llamada directa a la acción (`+ Reservar`).
+  - **Calendario Mensual Interactivo (`CalendarSidebar.jsx`)**: Barra lateral con navegación entre meses mediante controles interactivos, cálculo automático de desfase de días de la semana (lunes a domingo), resaltado de día activo y día actual, junto con tarjeta resumen con el contador total de reservas del día seleccionado.
+- **Diálogo Modal de Gestión de Citas (`BookingModal.jsx`)**:
+  - Formulario unificado para altas y modificaciones de citas con validación en tiempo real.
+  - Selección rápida de servicio mediante chips tipográficos monocromáticos (*Corte*, *Barba*, *Corte + Barba*, *Afeitado*).
+- **Orquestación Centralizada y Filtrado Dinámico por Fecha (`App.jsx` + FastAPI)**:
+  - Estado global unificado de fecha seleccionada (`selectedDate`), citas y estado modal.
+  - Implementación del endpoint `GET /appointments/date/{appointment_date}` en `backend/src/api/api.py` consumiendo `db.get_appointments_with_client(date=...)`.
+  - Integración del método `getAppointmentsByDate()` en `frontend/src/services/api.js`.
+  - Flujo completo de altas, actualizaciones y cancelaciones con recarga automática reactiva.
+- **Identidad Visual y Estilo**:
+  - Paleta monocromática estricta de alto contraste (`#09090b`, `#18181b`, `#27272a`, `#fafafa`), tipografía de ingeniería (`JetBrains Mono` y `Plus Jakarta Sans`) y ausencia total de iconos o emojis para una estética limpia, profesional y editorial.
+
 
 
 

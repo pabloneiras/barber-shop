@@ -38,6 +38,12 @@ export async function getTodayAppointments() {
   return request("/appointments/today/");
 }
 
+// Fetches all appointments scheduled for a specific date (YYYY-MM-DD).
+// Calls GET /appointments/date/{date} on the FastAPI server.
+export async function getAppointmentsByDate(date) {
+  return request(`/appointments/date/${date}`);
+}
+
 // Fetches appointments remaining from the current hour until the end of today.
 // Calls GET /appointments/today/left on the FastAPI server.
 export async function getTodayRemainingAppointments() {
@@ -92,6 +98,7 @@ export async function deleteAppointment(id) {
 // One only object that is made to "export" all functions in One object
 export const api = {
   getTodayAppointments,
+  getAppointmentsByDate,
   getTodayRemainingAppointments,
   getUpcomingAppointments,
   getAppointmentById,
