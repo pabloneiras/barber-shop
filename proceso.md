@@ -84,4 +84,14 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Diseñé el cliente HTTP centralizado en `frontend/src/services/api.js` (`async function` declaradas explícitamente, función envoltorio `request` y todos los comentarios en inglés).
 - Configuré los tokens de diseño mínimos y reseteo en `frontend/src/index.css` (48 líneas) para un crecimiento incremental componente a componente.
 
+## Fase Frontend: Interfaz Visual y Componentes Modulares (React + Vite)
+- **Cabecera y Marca (`Header.jsx`)**: Incorporación de la barra superior tipográfica con el emblema oficial circular de la barbería (`logo.jpg`), fecha formateada dinámicamente en español mediante `Intl.DateTimeFormat` y navegación por pestañas (*Agenda de Hoy*, *Nueva Cita*, *Todas las Citas*).
+- **Agenda Diaria y Tarjetas de Cita (`AgendaToday.jsx`)**:
+  - Cuadrícula responsiva que consume directamente los datos de `GET /appointments/today/`.
+  - Transformación declarativa de listas de objetos a elementos visuales mediante `.map()` y uso de claves únicas obligatorias (`key={appt.appointment_id}`).
+  - Lógica de evaluación temporal en el cliente (`appt.appointment_time < currentTimeString`) para marcar visualmente citas completadas (atenuadas) frente a pendientes (destacadas).
+  - Flujo de cancelación en vivo mediante `DELETE /appointments/{id}` con confirmación del navegador y recarga de memoria sin parpadeos.
+- **Estilos Modulares Incrementales**: Crecimiento progresivo de `frontend/src/index.css` a medida que se añaden componentes, manteniendo comentarios en inglés y una estética monocromática minimalista sin iconos ni emojis.
+
+
 

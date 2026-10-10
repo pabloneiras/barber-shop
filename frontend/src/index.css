@@ -201,3 +201,257 @@ body {
   font-family: var(--font-mono);
   font-size: 0.85rem;
 }
+
+
+/* ========================================================
+   AGENDA & APPOINTMENT CARDS
+   Toolbar, responsive grid, card states, and actions
+   ======================================================== */
+
+.agenda-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.section-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: all 0.15s ease;
+}
+
+.filter-btn:hover {
+  color: var(--text-pure);
+  border-color: var(--border-strong);
+}
+
+.filter-btn.active {
+  background-color: var(--text-pure);
+  color: var(--bg);
+  border-color: var(--text-pure);
+}
+
+.date-picker-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.input-field-compact {
+  background-color: var(--bg-card);
+  color: var(--text-pure);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.btn-primary {
+  background-color: var(--text-pure);
+  color: var(--bg);
+  border: 1px solid var(--text-pure);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: all 0.15s ease;
+}
+
+.btn-primary:hover {
+  background-color: transparent;
+  color: var(--text-pure);
+}
+
+/* Empty State */
+.empty-state {
+  border: 1px dashed var(--border);
+  padding: 4rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.empty-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-pure);
+}
+
+.empty-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  max-width: 400px;
+}
+
+/* Appointments Grid Layout */
+.appointments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Appointment Card */
+.appointment-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem;
+  transition: border-color 0.15s ease;
+}
+
+.appointment-card:hover {
+  border-color: var(--border-strong);
+}
+
+.card-past {
+  opacity: 0.55;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.time-badge {
+  font-family: var(--font-mono);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-pure);
+  letter-spacing: -0.02em;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--border);
+}
+
+.badge-active {
+  color: var(--text-pure);
+  border-color: var(--border-strong);
+}
+
+.badge-past {
+  color: var(--text-dim);
+  border-color: var(--border);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+}
+
+.client-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-pure);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.client-contact {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.service-info {
+  margin-top: 0.5rem;
+}
+
+.service-pill {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.6rem;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card-footer {
+  display: flex;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+}
+
+.btn-action {
+  flex: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  transition: all 0.15s ease;
+}
+
+.btn-edit {
+  color: var(--text-pure);
+}
+
+.btn-edit:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--border-strong);
+}
+
+.btn-cancel {
+  color: var(--text-dim);
+}
+
+.btn-cancel:hover:not(:disabled) {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
