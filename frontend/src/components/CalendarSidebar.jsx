@@ -16,19 +16,22 @@ export default function CalendarSidebar({
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const changeMonth = (offset) => {
+  // Moves the calendar view forward (+1) or backward (-1) by the given month delta
+  const navigateMonthByOffset = (offset) => {
     setCurrentDate(new Date(year, month + offset, 1));
   };
 
+  // Computes first weekday of month adjusting Sunday (0) to European Monday-first week (0 = Monday, 6 = Sunday)
   const firstDayIndex = new Date(year, month, 1).getDay();
-  const adjustedFirstDay = (firstDayIndex + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const adjustedFirstDayMondayBased = (firstDayIndex + 6) % 7;
+  const daysInMonthCount = new Date(year, month + 1, 0).getDate();
 
+  // Fills empty preceding cells with null and valid calendar days with their 1-based number
   const days = [];
-  for (let i = 0; i < adjustedFirstDay; i++) {
+  for (let i = 0; i < adjustedFirstDayMondayBased; i++) {
     days.push(null);
   }
-  for (let d = 1; d <= daysInMonth; d++) {
+  for (let d = 1; d <= daysInMonthCount; d++) {
     days.push(d);
   }
 
@@ -39,8 +42,9 @@ export default function CalendarSidebar({
       <div className="calendar-card">
         <div className="calendar-nav-bar">
           <button
+            type="button"
             className="calendar-arrow-btn"
-            onClick={() => changeMonth(-1)}
+            onClick={() => navigateMonthByOffset(-1)}
             title="Mes anterior"
           >
             ←
@@ -49,8 +53,9 @@ export default function CalendarSidebar({
             {MONTH_NAMES[month]} {year}
           </span>
           <button
+            type="button"
             className="calendar-arrow-btn"
-            onClick={() => changeMonth(1)}
+            onClick={() => navigateMonthByOffset(1)}
             title="Mes siguiente"
           >
             →

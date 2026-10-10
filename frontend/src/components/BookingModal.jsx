@@ -26,6 +26,7 @@ export default function BookingModal({
   const [recognizedClient, setRecognizedClient] = useState(null);
   const dropdownRef = useRef(null);
 
+  // Synchronizes internal form state with props whenever modal opens or initialData changes
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -44,7 +45,7 @@ export default function BookingModal({
     setError(null);
   }, [initialData, isOpen]);
 
-  // Debounced live client search triggered by typing in the phone field
+  // Debounces keystrokes in phone field by 200ms to query FastAPI only when user pauses typing
   useEffect(() => {
     if (mode !== "create" || recognizedClient) {
       setSuggestions([]);
@@ -76,8 +77,8 @@ export default function BookingModal({
 
   const isEdit = mode === "edit";
 
-  // Select an existing client from the suggestions list and populate inputs
-  const handleSelectClient = (client) => {
+  // Populates all form fields with selected client data and sets habitual client banner
+  const populateFormWithSelectedClient = (client) => {
     setFormData((prev) => ({
       ...prev,
       phone: client.phone,
@@ -90,12 +91,13 @@ export default function BookingModal({
     setShowDropdown(false);
   };
 
-  // Reset recognized client selection to allow manual editing
-  const handleClearRecognized = () => {
+  // Clears recognized client banner to allow manual typing without autocomplete lock
+  const resetRecognizedClientSelection = () => {
     setRecognizedClient(null);
   };
 
-  const handleSubmit = async (e) => {
+  // Validates required fields, sends payload to App handler, and handles API errors
+  const handleAppointmentFormSubmit = async (e) => {
     e.preventDefault();
     if (!formData.phone.trim()) {
       setError("El teléfono es obligatorio");
@@ -113,7 +115,8 @@ export default function BookingModal({
     }
   };
 
-  const setServiceChip = (serviceName) => {
+  // Quick-selects a preset service name when clicking a service chip button
+  const selectQuickServiceChip = (serviceName) => {
     setFormData((prev) => ({ ...prev, service: serviceName }));
   };
 
@@ -138,7 +141,7 @@ export default function BookingModal({
 
         {error && <div className="toast-bar">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="modal-form-body">
+        <form onSubmit={handleAppointmentFormSubmit} className="modal-form-body">
           {recognizedClient && (
             <div className="client-recognized-banner">
               <span>
@@ -147,7 +150,7 @@ export default function BookingModal({
               <button
                 type="button"
                 className="btn-clear-recognized"
-                onClick={handleClearRecognized}
+                onClick={resetRecognizedClientSelection}
               >
                 Cambiar
               </button>
@@ -171,7 +174,7 @@ export default function BookingModal({
                   if (suggestions.length > 0) setShowDropdown(true);
                 }}
                 onBlur={() => {
-                  // Small delay to allow onMouseDown on suggestion item to complete
+                  // Delayed hide allows onMouseDown on suggestion item to register before blur
                   setTimeout(() => setShowDropdown(false), 200);
                 }}
                 required
@@ -192,7 +195,7 @@ export default function BookingModal({
                       <div
                         key={client.client_id}
                         className="autocomplete-item"
-                        onMouseDown={() => handleSelectClient(client)}
+                        onMouseDown={() => populateFormWithSelectedClient(client)}
                       >
                         <div className="ac-client-info">
                           <span className="ac-client-name">{clientFullName}</span>
@@ -289,28 +292,28 @@ export default function BookingModal({
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => setServiceChip("Corte de pelo")}
+                onClick={() => selectQuickServiceChip("Corte de pelo")}
               >
                 Corte
               </button>
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => setServiceChip("Arreglo de barba")}
+                onClick={() => selectQuickServiceChip("Arreglo de barba")}
               >
                 Barba
               </button>
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => setServiceChip("Corte y barba")}
+                onClick={() => selectQuickServiceChip("Corte y barba")}
               >
                 Corte + Barba
               </button>
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => setServiceChip("Afeitado clásico")}
+                onClick={() => selectQuickServiceChip("Afeitado clásico")}
               >
                 Afeitado
               </button>
