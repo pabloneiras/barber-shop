@@ -88,14 +88,16 @@ export default function AgendaToday({
 
                   <div className="booked-actions">
                     <button
-                      className="btn-action btn-edit"
+                      type="button"
+                      className="btn-slot-edit"
                       onClick={() => onEdit(appt)}
                       title="Editar cita"
                     >
                       Editar
                     </button>
                     <button
-                      className="btn-action btn-cancel"
+                      type="button"
+                      className="btn-slot-cancel"
                       onClick={() => onDelete(appt.appointment_id, clientFullName)}
                       title="Cancelar cita"
                     >

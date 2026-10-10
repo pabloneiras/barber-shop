@@ -70,7 +70,12 @@ export default function CalendarSidebar({
         <div className="calendar-days-grid">
           {days.map((dayNum, idx) => {
             if (dayNum === null) {
-              return <div key={`empty-${idx}`} className="calendar-day empty"></div>;
+              return (
+                <div
+                  key={`empty-${idx}`}
+                  className="calendar-day-cell day-empty"
+                ></div>
+              );
             }
 
             const monthStr = String(month + 1).padStart(2, "0");
@@ -83,7 +88,8 @@ export default function CalendarSidebar({
             return (
               <button
                 key={dateStr}
-                className={`calendar-day ${isSelected ? "selected" : ""} ${isToday ? "today" : ""}`}
+                type="button"
+                className={`calendar-day-cell ${isSelected ? "day-selected" : ""} ${isToday ? "day-today" : ""}`}
                 onClick={() => setSelectedDate(dateStr)}
               >
                 <span>{dayNum}</span>
