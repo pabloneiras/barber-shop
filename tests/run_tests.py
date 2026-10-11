@@ -152,5 +152,122 @@ log(
 )
 log("  -> columns returned", list(rows_future[0].keys()) if rows_future else "No rows")
 
+# ─────────────────────────────────────────────
+# TEST 8 — WhatsApp Timezone & Send Time Calculation
+# Expected: Europe/Madrid timezone with DST support, exactly 24h before
+# ─────────────────────────────────────────────
+from app.reminders import (
+    compute_reminder_send_time,
+    build_whatsapp_payload,
+    programar_recordatorio,
+    cancelar_recordatorio,
+    reprogramar_recordatorio,
+    sincronizar_recordatorios,
+)
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+madrid_tz = ZoneInfo("Europe/Madrid")
+appt_dt, send_at = compute_reminder_send_time("2026-10-25", "10:30")
+diff_hours = (appt_dt - send_at).total_seconds() / 3600
+log(
+    "TEST 8 - compute_reminder_send_time (Europe/Madrid DST transition)",
+    f"Appt: {appt_dt.isoformat()} | Send at: {send_at.isoformat()} | Diff hours: {diff_hours} (expected 24.0)",
+)
+assert diff_hours == 24.0, "Reminder must be exactly 24 hours prior"
+
+# ─────────────────────────────────────────────
+# TEST 9 — WhatsApp Payload Builder
+# Expected: Meta Cloud API utility template format with '34' prefix and DD/MM date
+# ─────────────────────────────────────────────
+payload = build_whatsapp_payload("666111222", "Carlos", appt_dt)
+log("TEST 9 - build_whatsapp_payload", payload)
+assert payload["to"] == "34666111222", "Phone must include 34 prefix"
+assert payload["template"]["name"] == "recordatorio_cita"
+assert payload["template"]["components"][0]["parameters"][0]["text"] == "Carlos"
+assert payload["template"]["components"][0]["parameters"][1]["text"] == "25/10"
+assert payload["template"]["components"][0]["parameters"][2]["text"] == "10:30"
+
+# ─────────────────────────────────────────────
+# TEST 10 — Reminder Scheduling (Simulation Mode, < 30 days ahead)
+# Expected: status='simulado', mock-task generated, persisted in whatsapp_reminders
+# ─────────────────────────────────────────────
+future_date = (datetime.now(madrid_tz) + timedelta(days=5)).strftime("%Y-%m-%d")
+sim_appt_id = db.insert_appointment(id_carlos, future_date, "11:00", "Haircut")
+res_sim = programar_recordatorio(sim_appt_id, db_manager=db)
+rem_row = db.get_reminder(sim_appt_id)
+log(
+    "TEST 10 - programar_recordatorio (simulation mode)",
+    f"Result: {res_sim} | DB status: {rem_row['status']} | Task: {rem_row['task_name']}",
+)
+assert rem_row["status"] == "simulado"
+assert rem_row["task_name"].startswith("mock-task-")
+
+# ─────────────────────────────────────────────
+# TEST 11 — Past / < 24h Advance Appointment
+# Expected: status='omitido', task_name is None
+# ─────────────────────────────────────────────
+today_str = datetime.now(madrid_tz).strftime("%Y-%m-%d")
+short_appt_id = db.insert_appointment(id_carlos, today_str, "23:59", "Beard")
+res_short = programar_recordatorio(short_appt_id, db_manager=db)
+rem_short = db.get_reminder(short_appt_id)
+log(
+    "TEST 11 - programar_recordatorio (<24h advance -> omitido)",
+    f"Result: {res_short} | DB status: {rem_short['status']} | Task: {rem_short['task_name']}",
+)
+assert rem_short["status"] == "omitido"
+assert rem_short["task_name"] is None
+
+# ─────────────────────────────────────────────
+# TEST 12 — Far Future Appointment (> 30 days)
+# Expected: status='pendiente', task_name is None (queued for future sync)
+# ─────────────────────────────────────────────
+far_date = (datetime.now(madrid_tz) + timedelta(days=45)).strftime("%Y-%m-%d")
+far_appt_id = db.insert_appointment(id_carlos, far_date, "12:00", "Coloring")
+res_far = programar_recordatorio(far_appt_id, db_manager=db)
+rem_far = db.get_reminder(far_appt_id)
+log(
+    "TEST 12 - programar_recordatorio (>30 days -> pendiente)",
+    f"Result: {res_far} | DB status: {rem_far['status']} | Task: {rem_far['task_name']}",
+)
+assert rem_far["status"] == "pendiente"
+assert rem_far["task_name"] is None
+
+# ─────────────────────────────────────────────
+# TEST 13 — Reschedule Reminder
+# Expected: previous task cancelled and updated with new send_at
+# ─────────────────────────────────────────────
+new_future_date = (datetime.now(madrid_tz) + timedelta(days=6)).strftime("%Y-%m-%d")
+db.update_appointment(sim_appt_id, date=new_future_date, time="16:00")
+res_reprog = reprogramar_recordatorio(sim_appt_id, db_manager=db)
+rem_reprog = db.get_reminder(sim_appt_id)
+log(
+    "TEST 13 - reprogramar_recordatorio",
+    f"Result: {res_reprog} | DB send_at: {rem_reprog['send_at']} | status: {rem_reprog['status']}",
+)
+assert rem_reprog["status"] == "simulado"
+
+# ─────────────────────────────────────────────
+# TEST 14 — Cancel Reminder
+# Expected: status='cancelado'
+# ─────────────────────────────────────────────
+ok_cancel = cancelar_recordatorio(sim_appt_id, db_manager=db)
+rem_canceled = db.get_reminder(sim_appt_id)
+log(
+    "TEST 14 - cancelar_recordatorio",
+    f"Success: {ok_cancel} | DB status: {rem_canceled['status']}",
+)
+assert rem_canceled["status"] == "cancelado"
+
+# ─────────────────────────────────────────────
+# TEST 15 — Startup Synchronization
+# Expected: reconciles future appointments without reminders into scheduled state
+# ─────────────────────────────────────────────
+sync_res = sincronizar_recordatorios(db_manager=db)
+log("TEST 15 - sincronizar_recordatorios", sync_res)
+assert isinstance(sync_res, dict)
+assert "reconciled" in sync_res
+assert "created" in sync_res
+
 db.close_connection()
-print("ALL TESTS COMPLETED")
+print("ALL TESTS COMPLETED SUCCESSFULLY (15/15)")

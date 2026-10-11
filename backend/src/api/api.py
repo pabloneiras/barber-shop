@@ -1,9 +1,30 @@
+from contextlib import asynccontextmanager
+import logging
 from app.database import db
+from app.reminders import (
+    programar_recordatorio,
+    cancelar_recordatorio,
+    reprogramar_recordatorio,
+    sincronizar_recordatorios,
+)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-app = FastAPI(title="Barber Shop API")
+logger = logging.getLogger("api")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: synchronize scheduled WhatsApp reminders
+    try:
+        sincronizar_recordatorios()
+    except Exception as exc:
+        logger.error("Error during reminder synchronization on startup: %s", exc)
+    yield
+
+
+app = FastAPI(title="Barber Shop API", lifespan=lifespan)
 
 # Enable CORS for frontend integration (React development server)
 app.add_middleware(
@@ -118,6 +139,10 @@ def fapi_get_appointment(appointment_id: int):
 def fapi_intert_post_appointment(appointment: AppointmentCreate):
     client_id = db.get_or_create_client(appointment.phone, appointment.name, appointment.last_name)
     appointment_id = db.insert_appointment(client_id, appointment.appointment_date, appointment.appointment_time, appointment.service)
+    try:
+        programar_recordatorio(appointment_id)
+    except Exception as exc:
+        logger.error("Error scheduling reminder for appointment #%s: %s", appointment_id, exc)
     return {"mensaje": "cita creada correctamente", "appointment_id": appointment_id}
 
 
@@ -135,6 +160,11 @@ def fapi_put_updt_appointment(appointment_id: int, new_appointment: AppointmentU
             service=new_appointment.service,
         )
         if bool_rc == 1:
+            if new_appointment.appointment_date is not None or new_appointment.appointment_time is not None:
+                try:
+                    reprogramar_recordatorio(appointment_id)
+                except Exception as exc:
+                    logger.error("Error rescheduling reminder for appointment #%s: %s", appointment_id, exc)
             return {"mensaje": "cita actualizada correctamente"}
         else:
             return {"mensaje": "no se realizaron cambios"}
@@ -145,9 +175,22 @@ def fapi_put_updt_appointment(appointment_id: int, new_appointment: AppointmentU
 # Deletion (DELETE): targets {appointment_id} in the path to cancel/remove a specific appointment.
 @app.delete("/appointments/{appointment_id}")
 def fapi_delete_appointment(appointment_id: int):
+    try:
+        cancelar_recordatorio(appointment_id)
+    except Exception as exc:
+        logger.error("Error canceling reminder for appointment #%s: %s", appointment_id, exc)
     bool_dl = db.delete_appointment(appointment_id)
     if bool_dl == 0:
         return {"mensaje": "la cita no existia"}
     else:
         return {"mensaje": "cita eliminada"}
+
+
+# Single reminder lookup: returns the WhatsApp reminder details and schedule status
+@app.get("/appointments/{appointment_id}/reminder")
+def fapi_get_appointment_reminder(appointment_id: int):
+    reminder = db.get_reminder(appointment_id)
+    if reminder:
+        return dict(reminder)
+    return {"mensaje": "recordatorio no encontrado"}
 

@@ -47,10 +47,7 @@ class DatabaseManager:
         appointment_id INTEGER PRIMARY KEY,
         task_name TEXT,
         send_at TEXT NOT NULL,
-        status TEXT NOT NULL,
-        FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
-        ON UPDATE CASCADE
-        ON DELETE CASCADE)
+        status TEXT NOT NULL)
         """)
         self.connection.commit()
 
