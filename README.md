@@ -1,3 +1,5 @@
+[🇪🇸 Versión en Español](README_es.md) | [🇬🇧 English Version](README.md)
+
 # Barber Shop
 
 > **Full-Stack Appointment Management System & Automated WhatsApp Reminders**
@@ -45,43 +47,43 @@ Independent barbershops often rely on paper appointment books or messaging chats
 
 ```mermaid
 flowchart TD
-    subgraph Frontend["React (Vite) Frontend"]
-        UI["Dual-Pane Timeline & Calendar"]
-        Modal["Booking & Edit Modal"]
+    subgraph Frontend["React Vite Frontend"]
+        UI["Dual-Pane Timeline and Calendar"]
+        Modal["Booking and Edit Modal"]
         Search["Live Client Autocomplete"]
     end
 
     subgraph Backend["FastAPI REST API"]
-        Router["Endpoints (/appointments, /clients)"]
-        Lifespan["Startup Reconciler (lifespan)"]
-        RemEngine["Reminders Engine (reminders.py)"]
+        Router["Endpoints: appointments and clients"]
+        Lifespan["Startup Reconciler: lifespan"]
+        RemEngine["Reminders Engine: reminders.py"]
     end
 
     subgraph Storage["SQLite Database"]
-        DB[(barber_shop.db)]
-        T_Clients[clients table]
-        T_Appts[appointments table]
-        T_Reminders[whatsapp_reminders table]
+        DB[("barber_shop.db SQLite")]
+        T_Clients["clients table"]
+        T_Appts["appointments table"]
+        T_Reminders["whatsapp_reminders table"]
     end
 
     subgraph Cloud["External Cloud Services"]
-        GCP["Google Cloud Tasks (europe-west1)"]
+        GCP["Google Cloud Tasks europe-west1"]
         Meta["Meta WhatsApp Cloud API"]
-        ClientPhone["Client Phone (WhatsApp)"]
+        ClientPhone["Client Phone: WhatsApp"]
     end
 
-    UI -->|HTTP Requests| Router
-    Modal -->|POST / PUT / DELETE| Router
-    Search -->|GET /clients/search| Router
+    UI -->|"HTTP Requests"| Router
+    Modal -->|"POST, PUT, DELETE"| Router
+    Search -->|"GET clients search"| Router
 
-    Router -->|CRUD Queries| DB
-    Router -->|Trigger Reminders| RemEngine
-    Lifespan -->|Audit on boot| RemEngine
+    Router -->|"CRUD Queries"| DB
+    Router -->|"Trigger Reminders"| RemEngine
+    Lifespan -->|"Audit on boot"| RemEngine
 
-    RemEngine -.->|If No Keys: Mock Mode| DB
-    RemEngine -->|If Keys Set: Schedule Task| GCP
-    GCP -->|Trigger at send_at (24h prior)| Meta
-    Meta -->|Utility Template Message| ClientPhone
+    RemEngine -.->|"If No Keys: Mock Mode"| DB
+    RemEngine -->|"If Keys Set: Schedule Task"| GCP
+    GCP -->|"Trigger at send_at: 24h prior"| Meta
+    Meta -->|"Utility Template Message"| ClientPhone
 ```
 
 ---
