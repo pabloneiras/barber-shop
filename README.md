@@ -1,207 +1,176 @@
-# WhatsApp Automated Reminders — Setup & Credentials Guide
+# Barber Shop
 
-This guide explains how automated 24-hour WhatsApp appointment reminders work in **Barber Shop**, where to configure your API keys and credentials, and how to operate the system in both **local simulation mode** (zero keys required) and **live cloud production mode**.
+> **Full-Stack Appointment Management System & Automated WhatsApp Reminders**
+> Built for a real-world local barbershop to eliminate client no-shows, streamline scheduling, and replace paper ledgers with a responsive, offline-tolerant web application.
 
----
-
-## 1. Quick Summary: Dual-Mode Architecture
-
-The reminder subsystem in [`backend/src/app/reminders.py`](backend/src/app/reminders.py) is built to be resilient and zero-friction:
-
-| Mode | Credentials Needed? | What happens when a booking is created? | Cost |
-|---|---|---|---|
-| **Simulation Mode** (Default) | **None** | Calculates target 24h `send_at` time in `Europe/Madrid`, validates payload, logs `[WHATSAPP MOCK]`, and registers `status = 'simulado'`. | **$0.00** |
-| **Live Cloud Mode** | **Meta & GCP** | Enqueues a scheduled HTTP task into Google Cloud Tasks pointing directly to Meta's Cloud API at `send_at`. When the time arrives, Meta delivers the WhatsApp message. | ~€0.0166 per delivered message |
-
-> **Key Advantage:** You do **not** need any API keys or credit cards to develop, test, or demonstrate the application locally. It works 100% out of the box.
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18+-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-5+-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![SQLite](https://img.shields.io/badge/SQLite-3-003B57?style=flat&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![Google Cloud Tasks](https://img.shields.io/badge/Google_Cloud_Tasks-Serverless-4285F4?style=flat&logo=googlecloud&logoColor=white)](https://cloud.google.com/tasks)
+[![Meta Cloud API](https://img.shields.io/badge/Meta_WhatsApp-Cloud_API-25D366?style=flat&logo=whatsapp&logoColor=white)](https://developers.facebook.com/docs/whatsapp/cloud-api)
+[![Tests](https://img.shields.io/badge/Tests-52%2F52_Passing-brightgreen?style=flat)]()
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## 2. Where to Put Your Credentials
+## 1. Overview & Problem Statement
 
-All secret keys and cloud configuration belong in a **`.env`** file placed directly in the **project root folder**:
+Independent barbershops often rely on paper appointment books or messaging chats, causing three main business bottlenecks:
+1. **Client No-Shows:** Clients forget bookings without automated reminders, causing idle time and lost revenue.
+2. **Scheduling Friction:** Inability to quickly inspect remaining day slots, view client booking history, or autocomplete recurring clients.
+3. **Machine Dependence:** Standard desktop schedulers only send notifications if the computer stays powered on overnight.
 
-```text
-barber-shop/
-├── .env                  <-- CREATE THIS FILE HERE
-├── .env.example          <-- Reference template
-├── .gitignore            <-- Configured to NEVER commit .env or *.json keys
-├── Database/
-├── backend/
-├── frontend/
-└── tests/
+**Barber Shop** solves these challenges with a lightweight, high-performance architecture:
+- A responsive **React + Vite** single-page application featuring a dual-pane timeline and calendar.
+- A robust **FastAPI + SQLite** REST backend enforcing relational integrity and strict Pydantic schemas.
+- A serverless **WhatsApp Automation Engine** powered by **Google Cloud Tasks** and **Meta Cloud API**, delivering reminders exactly 24 hours prior even when the barbershop computer is turned off.
+- A built-in **Simulation Mode** that allows 100% full-stack development and testing locally with zero cloud credentials or costs.
+
+---
+
+## 2. Key Features
+
+- **Dual-Pane Timeline & Calendar:** Interactive mini-calendar coupled with an hourly slot ledger. Inspect today's appointments, filter by date, or view upcoming slots at a glance.
+- **Search-as-You-Type Client Autocomplete:** Dynamic client search by partial name or phone number, instantly showing visit count and previous services to speed up repeat bookings.
+- **24-Hour Automated WhatsApp Reminders:** Calculates exact target send times in `Europe/Madrid` (with automatic Daylight Saving Time adjustment). If an appointment is modified or cancelled, scheduled cloud tasks are automatically revoked.
+- **Zero-Dependency Mock/Simulation Mode:** When cloud keys are absent, the system seamlessly operates in safe simulation mode (`status = 'simulado'`), logging mock tasks without throwing errors.
+- **Startup Reconciliation Engine (`lifespan`):** On application startup, the server automatically audits the database: schedules future bookings, catches pending items entering the 30-day window, and purges orphaned tasks.
+- **Architecture Decision Records (ADRs):** Comprehensive technical rationales recorded in [`decisions.md`](decisions.md), covering database key choices, SQLite concurrency, and REST conventions.
+
+---
+
+## 3. System Architecture
+
+```mermaid
+flowchart TD
+    subgraph Frontend["React (Vite) Frontend"]
+        UI["Dual-Pane Timeline & Calendar"]
+        Modal["Booking & Edit Modal"]
+        Search["Live Client Autocomplete"]
+    end
+
+    subgraph Backend["FastAPI REST API"]
+        Router["Endpoints (/appointments, /clients)"]
+        Lifespan["Startup Reconciler (lifespan)"]
+        RemEngine["Reminders Engine (reminders.py)"]
+    end
+
+    subgraph Storage["SQLite Database"]
+        DB[(barber_shop.db)]
+        T_Clients[clients table]
+        T_Appts[appointments table]
+        T_Reminders[whatsapp_reminders table]
+    end
+
+    subgraph Cloud["External Cloud Services"]
+        GCP["Google Cloud Tasks (europe-west1)"]
+        Meta["Meta WhatsApp Cloud API"]
+        ClientPhone["Client Phone (WhatsApp)"]
+    end
+
+    UI -->|HTTP Requests| Router
+    Modal -->|POST / PUT / DELETE| Router
+    Search -->|GET /clients/search| Router
+
+    Router -->|CRUD Queries| DB
+    Router -->|Trigger Reminders| RemEngine
+    Lifespan -->|Audit on boot| RemEngine
+
+    RemEngine -.->|If No Keys: Mock Mode| DB
+    RemEngine -->|If Keys Set: Schedule Task| GCP
+    GCP -->|Trigger at send_at (24h prior)| Meta
+    Meta -->|Utility Template Message| ClientPhone
 ```
 
-### Security Warning: Git Protection
-The project's [`.gitignore`](.gitignore) file is pre-configured with:
-```gitignore
-.env
-*.env
-service-account*.json
-gcp-key*.json
-```
-**Never** commit your `.env` file or your service account JSON keys to GitHub.
+---
+
+## 4. Tech Stack
+
+| Domain | Technology | Rationale |
+|---|---|---|
+| **Frontend** | React 18, Vite, Vanilla CSS | Ultra-fast build times, modular component hierarchy, no bloated UI framework dependencies. |
+| **Backend** | Python 3.11+, FastAPI, Pydantic | High-performance asynchronous REST API with automatic OpenAPI documentation and strict data validation. |
+| **Database** | SQLite 3 (`check_same_thread=False`) | Single-file embedded zero-maintenance database. Relational foreign key enforcement (`PRAGMA foreign_keys = ON;`). |
+| **Cloud Scheduling** | Google Cloud Tasks | Serverless task scheduling supporting HTTP targets up to 30 days in advance. Generous free tier (1,000,000 tasks/month). |
+| **Messaging** | Meta WhatsApp Cloud API | Official WhatsApp Business Platform utility template delivery. |
+| **Testing** | `unittest`, `FastAPI TestClient`, `zoneinfo` | Comprehensive isolated unit tests and 37 boundary edge case assertions. |
 
 ---
 
-## 3. Environment Variables Reference
+## 5. Quickstart & Installation
 
-Create a file named `.env` in the root folder with the following variables:
+### Prerequisites
+- Python 3.11+
+- Node.js 18+ & npm
+- Git
 
-```env
-# -----------------------------------------------------------------------------
-# META WHATSAPP CLOUD API CONFIGURATION
-# -----------------------------------------------------------------------------
-# Permanent Access Token generated for a System User in Meta Business Suite
-META_ACCESS_TOKEN=EAAG...your_permanent_system_user_token_here...
-
-# WhatsApp Business Phone Number ID (NOT your personal phone number)
-META_PHONE_NUMBER_ID=123456789012345
-
-# Meta Graph API version
-META_API_VERSION=v21.0
-
-# Name of the approved WhatsApp template
-META_TEMPLATE_NAME=recordatorio_cita
-
-# Language code of the approved template
-META_TEMPLATE_LANG=es
-
-# -----------------------------------------------------------------------------
-# GOOGLE CLOUD TASKS CONFIGURATION
-# -----------------------------------------------------------------------------
-# Google Cloud Project ID
-GCP_PROJECT=barber-shop-prod
-
-# Region where your Cloud Tasks queue is created
-GCP_LOCATION=europe-west1
-
-# Name of the Cloud Tasks queue
-GCP_QUEUE=recordatorios-whatsapp
-
-# Absolute path to your Google Service Account JSON key
-GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\service-account-key.json
-```
-
----
-
-## 4. Step-by-Step: How to Obtain the Credentials
-
-### Step 4.1. Meta WhatsApp Cloud API Setup
-
-1. **Create a Meta Developer Account:**
-   - Go to [developers.facebook.com](https://developers.facebook.com/) and register or log in.
-2. **Create an App:**
-   - Click **My Apps** > **Create App**.
-   - Select **Business** as the app type.
-   - Give it an app name (e.g., `Barber Shop Reminders`) and select your Business Portfolio.
-3. **Add the WhatsApp Product:**
-   - In the App Dashboard, click **Set Up** on the **WhatsApp** card.
-4. **Locate your Phone Number ID:**
-   - Navigate to **WhatsApp** > **API Setup**.
-   - Under *Step 1: Select phone numbers*, copy the **Phone number ID** into `META_PHONE_NUMBER_ID`.
-5. **Create & Submit the Message Template:**
-   - Go to **WhatsApp** > **Message Templates** (or in Meta Business Manager: *WhatsApp Manager* > *Message Templates*).
-   - Click **Create Template**:
-     - **Category:** `Utility`
-     - **Name:** `recordatorio_cita`
-     - **Language:** `Spanish` (`es`)
-     - **Body Text:**
-       ```text
-       Hola {{1}}, te recordamos tu cita en Barber Shop el {{2}} a las {{3}}. Si no puedes asistir o deseas modificarla, por favor avísanos.
-       ```
-     - **Samples:** Provide sample values (e.g. `1` = `Carlos`, `2` = `15/10`, `3` = `12:00`).
-   - Submit for review (Meta typically approves Utility templates automatically within minutes).
-6. **Generate a Permanent Access Token:**
-   - *Temporary tokens from the API setup tab expire in 24 hours.*
-   - Go to [business.facebook.com/settings](https://business.facebook.com/settings/) > **Users** > **System Users**.
-   - Create a System User with the `Admin` role.
-   - Under **Assigned Assets**, assign your App and WhatsApp Account with **Full Control**.
-   - Click **Generate Token**:
-     - Check permissions: `whatsapp_business_messaging` and `whatsapp_business_management`.
-   - Copy this token into `META_ACCESS_TOKEN` in your `.env`.
-
----
-
-### Step 4.2. Google Cloud Tasks Setup
-
-Google Cloud Tasks acts as the external scheduling engine. It holds the reminder until the exact UTC send time, then sends an HTTP POST request to Meta even if the barber's computer is turned off.
-
-1. **Create a Google Cloud Project:**
-   - Go to the [Google Cloud Console](https://console.cloud.google.com/).
-   - Create a new project (e.g., `barber-shop`).
-   - Link a billing account (Cloud Tasks includes **1,000,000 free operations per month**; usage for a local barbershop is 100% free).
-2. **Enable the Cloud Tasks API:**
-   - Run in your terminal (with Google Cloud SDK installed):
-     ```bash
-     gcloud services enable cloudtasks.googleapis.com --project=YOUR_PROJECT_ID
-     ```
-3. **Create the Tasks Queue:**
-   - Run:
-     ```bash
-     gcloud tasks queues create recordatorios-whatsapp \
-         --location=europe-west1 \
-         --max-attempts=3 \
-         --project=YOUR_PROJECT_ID
-     ```
-     *(Setting `--max-attempts=3` prevents endless retries and duplicate messages if Meta encounters an issue).*
-4. **Create a Service Account & Download the JSON Key:**
-   - In Cloud Console, go to **IAM & Admin** > **Service Accounts**.
-   - Click **Create Service Account** (e.g., `reminders-worker`).
-   - Grant the following roles:
-     - `Cloud Tasks Enqueuer` (allows scheduling tasks).
-     - `Cloud Tasks Task Deleter` or `Cloud Tasks Admin` (allows cancelling tasks when an appointment is deleted/updated).
-   - Click **Done**, then click the created service account > **Keys** > **Add Key** > **Create new key** > **JSON**.
-   - Save the downloaded JSON file in your project directory (e.g. `service-account-key.json`).
-   - Set `GOOGLE_APPLICATION_CREDENTIALS` in your `.env` to the absolute path of this file.
-
----
-
-## 5. How Simulation Mode Works (Zero Keys)
-
-If any of the environment variables above are missing or empty:
-1. The backend automatically switches to **Simulation Mode**.
-2. When creating a booking:
-   - Calculates the target send time 24 hours in advance in Madrid local time.
-   - Normalizes the phone number (e.g., `666111222` -> `34666111222`).
-   - Generates a mock task identifier: `mock-task-<appointment_id>-<timestamp>`.
-   - Records the state in SQLite: `status = 'simulado'`.
-   - Logs the simulated event to the console:
-     ```text
-     INFO:reminders:[WHATSAPP MOCK] Programado recordatorio para cita #10 (Carlos a las 17:00) -> Envio: 2026-10-19T15:00:00+00:00 | Tarea: mock-task-10-1791676079
-     ```
-3. If an appointment is modified via `PUT /appointments/{id}`, the simulation cancels the previous mock task and reschedules a new one.
-4. If an appointment is cancelled via `DELETE /appointments/{id}`, the simulation marks it as `status = 'cancelado'`.
-
----
-
-## 6. How to Verify & Test
-
-### Run Automated Tests
-Execute the test suite from the repository root:
+### 1. Clone the repository
 ```bash
+git clone https://github.com/your-username/barber-shop.git
+cd barber-shop
+```
+
+### 2. Backend Setup
+```bash
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment (Windows PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the backend server
+python -m uvicorn --app-dir backend/src api.api:app --reload --port 8000
+```
+Backend API will be running at `http://localhost:8000`. Interactive Swagger UI is available at `http://localhost:8000/docs`.
+
+### 3. Frontend Setup
+In a new terminal:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Open `http://localhost:5173` in your browser.
+
+---
+
+## 6. Testing & Quality Assurance
+
+The codebase includes two dedicated test suites running on isolated, ephemeral SQLite databases:
+
+```bash
+# 1. Core integration tests (15 tests)
 .\.venv\Scripts\python.exe tests/run_tests.py
-```
-This tests:
-- Timezone calculation and Daylight Saving Time (DST) shifts.
-- Meta template parameter formatting.
-- Simulation scheduling (`simulado`).
-- Same-day booking omission (`omitido`).
-- Booking > 30 days ahead deferral (`pendiente`).
-- Rescheduling, cancellation, and startup reconciliation (`sincronizar_recordatorios`).
 
-### Check an Appointment's Reminder Status via API
-Once the server is running (`python -m uvicorn --app-dir backend/src api.api:app --reload`), inspect any reminder via HTTP:
-```http
-GET http://127.0.0.1:8000/appointments/{appointment_id}/reminder
+# 2. Comprehensive edge cases suite (37 tests)
+$env:PYTHONPATH="backend/src"; .\.venv\Scripts\python.exe tests/test_edge_cases.py
 ```
 
-**Example JSON Response:**
-```json
-{
-  "appointment_id": 10,
-  "task_name": "mock-task-10-1791676079",
-  "send_at": "2026-10-19T15:00:00+00:00",
-  "status": "simulado"
-}
-```
+### Edge Cases Covered (37/37 Passing):
+- **Daylight Saving Time (DST):** Spring-forward (March) and fall-back (October) transitions in `Europe/Madrid`.
+- **Phone Sanitization:** Robust handling of `+34`, `0034`, leading spaces, dashes, and already-prefixed numbers.
+- **Client Name Fallbacks:** Graceful fallback to `"Cliente"` for `None`, empty string, and whitespace-only names. Unicode support for special characters and accents.
+- **24-Hour Horizon:** Correct omission (`status = 'omitido'`) for appointments booked with less than 24h notice.
+- **30-Day GCP Queue Threshold:** Seamless deferral (`status = 'pendiente'`) for appointments booked further than 30 days ahead.
+- **Rescheduling & Cancellation:** Instant task revocation and database status synchronization on booking edits.
+- **Startup Reconciliation:** Automated detection of orphan reminders from deleted bookings and missing future tasks.
+
+---
+
+## 7. Documentation Index
+
+- **[`DATABASE_SCHEMA.md`](DATABASE_SCHEMA.md):** Complete database schema reference, entity-relationship diagrams, column constraints, and reminder state machine.
+- **[`WHATSAPP_SETUP.md`](WHATSAPP_SETUP.md):** Step-by-step configuration guide for Meta Cloud API and Google Cloud Tasks credentials, including local simulation mode instructions.
+- **[`decisions.md`](decisions.md):** Architecture Decision Records (ADRs) documenting rationale for data models, primary key selection, and framework patterns.
+- **[`.env.example`](.env.example):** Copy-paste template for production environment variables.
+
+---
+
+## 8. License
+
+Distributed under the MIT License. See [`LICENSE`](LICENSE) for more information.
