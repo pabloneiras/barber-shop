@@ -15,6 +15,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 logger = logging.getLogger("api")
+
+# Resolves the absolute path to the compiled React bundle: <root>/frontend/dist
+# __file__ is backend/src/api/api.py -> parents[3] climbs 4 levels up to the repository root
 FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
 
 

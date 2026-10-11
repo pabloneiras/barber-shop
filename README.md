@@ -128,7 +128,39 @@ python -m uvicorn --app-dir backend/src api.api:app --reload --port 8000
 ```
 Backend API will be running at `http://localhost:8000`. Interactive Swagger UI is available at `http://localhost:8000/docs`.
 
-### 3. Frontend Setup
+### 3. Environment Configuration & API Keys (`.env`)
+The application looks for environment variables in a `.env` file placed in the **project root directory**. A ready-to-use template is included in [`.env.example`](.env.example):
+
+```bash
+# Copy the template to .env (Windows PowerShell)
+Copy-Item .env.example .env
+
+# Or in Linux / macOS / Bash:
+cp .env.example .env
+```
+
+#### Dual-Mode Execution:
+- **Local Simulation Mode (Default — No keys needed):**
+  If `.env` is empty or omitted, the application runs **100% locally out-of-the-box**. Reminders are computed with Madrid timezone awareness, validated, and recorded as mock tasks (`status = 'simulado'`) with zero network dependencies and $0.00 cost.
+- **Production Mode (Live WhatsApp Delivery):**
+  To enable automated WhatsApp delivery via Meta and Google Cloud Tasks, populate your credentials inside `.env`:
+  ```env
+  # Meta WhatsApp Cloud API
+  META_ACCESS_TOKEN=your_permanent_system_user_token
+  META_PHONE_NUMBER_ID=your_whatsapp_phone_number_id
+  META_API_VERSION=v21.0
+  META_TEMPLATE_NAME=recordatorio_cita
+  META_TEMPLATE_LANG=es
+
+  # Google Cloud Tasks (External Scheduler)
+  GCP_PROJECT=your_google_cloud_project_id
+  GCP_LOCATION=europe-west1
+  GCP_QUEUE=recordatorios-whatsapp
+  GOOGLE_APPLICATION_CREDENTIALS=C:\path\to\service-account-key.json
+  ```
+  > For complete step-by-step instructions on obtaining Meta tokens, setting up the WhatsApp template, and configuring Google Cloud Tasks, see the dedicated [**WhatsApp Credentials & Cloud Setup Guide (`WHATSAPP_SETUP.md`)**](WHATSAPP_SETUP.md).
+
+### 4. Frontend Setup (Development)
 In a new terminal:
 ```bash
 cd frontend
@@ -136,6 +168,17 @@ npm install
 npm run dev
 ```
 Open `http://localhost:5173` in your browser.
+
+### 5. Unified Production Launch (Single Process)
+Alternatively, you can build the frontend once and run both the API and the React SPA from a single FastAPI server on port 8000:
+```bash
+# Build React bundle into frontend/dist
+cd frontend && npm run build && cd ..
+
+# Launch unified server (or double-click run_app.bat on Windows)
+.\run_app.bat
+```
+Visit `http://localhost:8000` to access the full application.
 
 ---
 
