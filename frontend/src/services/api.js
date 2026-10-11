@@ -2,7 +2,10 @@
  * Centralized API client communicating with the local FastAPI backend.
  * All requests target http://127.0.0.1:8000 where Uvicorn serves the API.
  */
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL =
+  typeof window !== "undefined" && window.location.port === "5173"
+    ? "http://127.0.0.1:8000"
+    : "";
 
 // Central wrapper function to handle network calls, headers, and error parsing.
 // Prepends the base URL and deserializes JSON response payloads automatically.

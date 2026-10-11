@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import logging
+from pathlib import Path
 from app.database import db
 from app.reminders import (
     programar_recordatorio,
@@ -9,9 +10,12 @@ from app.reminders import (
 )
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 logger = logging.getLogger("api")
+FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
 
 
 @asynccontextmanager
@@ -76,9 +80,12 @@ class ClientSearchResponse(BaseModel):
 
 
 
-# Health check: verifies that the FastAPI service is running.
+# Health check & Frontend root: serves React app if built, otherwise JSON status
 @app.get("/")
 def root():
+    index_file = FRONTEND_DIST / "index.html"
+    if FRONTEND_DIST.exists() and index_file.exists():
+        return FileResponse(index_file)
     return {"message": "API de Barber Shop funcionando"}
 
 
@@ -193,4 +200,21 @@ def fapi_get_appointment_reminder(appointment_id: int):
     if reminder:
         return dict(reminder)
     return {"mensaje": "recordatorio no encontrado"}
+
+
+# Mount production frontend static assets and SPA route handling when built
+if FRONTEND_DIST.exists():
+    assets_dir = FRONTEND_DIST / "assets"
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="assets")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend_spa(full_path: str):
+        file_path = FRONTEND_DIST / full_path
+        if full_path and file_path.is_file():
+            return FileResponse(file_path)
+        index_file = FRONTEND_DIST / "index.html"
+        if index_file.exists():
+            return FileResponse(index_file)
+        return {"mensaje": "Frontend not found"}
 
