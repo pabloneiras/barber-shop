@@ -4,6 +4,7 @@ import AgendaToday from "./components/AgendaToday";
 import CalendarSidebar from "./components/CalendarSidebar";
 import BookingModal from "./components/BookingModal";
 import { api } from "./services/api";
+import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 
 // Returns the current local calendar date formatted as an ISO YYYY-MM-DD string
 function getTodayLocalDateISOString() {
@@ -14,7 +15,8 @@ function getTodayLocalDateISOString() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-export default function App() {
+function MainWorkspace() {
+  const { t } = useLanguage();
   const [selectedDate, setSelectedDate] = useState(getTodayLocalDateISOString);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -54,7 +56,7 @@ export default function App() {
         last_name: "",
         appointment_date: selectedDate,
         appointment_time: time,
-        service: "Corte de pelo",
+        service: t.defaultService,
       },
     });
   };
@@ -99,8 +101,8 @@ export default function App() {
 
   // Confirms deletion with the user, calls DELETE on FastAPI, and refreshes the timeline
   const cancelAppointmentWithConfirmation = async (id, clientName) => {
-    const displayName = clientName || "este cliente";
-    const confirmed = window.confirm(`¿Cancelar la cita de ${displayName}?`);
+    const displayName = clientName || t.unnamedClient;
+    const confirmed = window.confirm(t.confirmCancel(displayName));
     if (!confirmed) return;
 
     try {
@@ -108,7 +110,7 @@ export default function App() {
       await fetchAppointmentsForDate(selectedDate);
     } catch (err) {
       console.error("Failed to delete appointment:", err);
-      alert(err.message || "Error al eliminar la cita");
+      alert(err.message || t.cancelError);
     }
   };
 
@@ -140,5 +142,13 @@ export default function App() {
         onSubmit={handleSaveAppointmentFromModal}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <MainWorkspace />
+    </LanguageProvider>
   );
 }

@@ -1,9 +1,5 @@
 import React, { useState } from "react";
-
-const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-];
+import { useLanguage } from "../context/LanguageContext";
 
 // Interactive calendar sidebar for date selection and monthly navigation.
 export default function CalendarSidebar({
@@ -11,6 +7,7 @@ export default function CalendarSidebar({
   setSelectedDate,
   appointmentsCount,
 }) {
+  const { t } = useLanguage();
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -45,31 +42,29 @@ export default function CalendarSidebar({
             type="button"
             className="calendar-arrow-btn"
             onClick={() => navigateMonthByOffset(-1)}
-            title="Mes anterior"
+            title={t.prevMonth}
           >
             ←
           </button>
           <span className="calendar-month-label">
-            {MONTH_NAMES[month]} {year}
+            {t.monthNames[month]} {year}
           </span>
           <button
             type="button"
             className="calendar-arrow-btn"
             onClick={() => navigateMonthByOffset(1)}
-            title="Mes siguiente"
+            title={t.nextMonth}
           >
             →
           </button>
         </div>
 
         <div className="calendar-weekdays">
-          <div className="weekday-header">Lun</div>
-          <div className="weekday-header">Mar</div>
-          <div className="weekday-header">Mié</div>
-          <div className="weekday-header">Jue</div>
-          <div className="weekday-header">Vie</div>
-          <div className="weekday-header">Sáb</div>
-          <div className="weekday-header">Dom</div>
+          {t.weekdaysShort.map((dayLabel, i) => (
+            <div key={i} className="weekday-header">
+              {dayLabel}
+            </div>
+          ))}
         </div>
 
         <div className="calendar-days-grid">
@@ -105,14 +100,12 @@ export default function CalendarSidebar({
       </div>
 
       <div className="sidebar-info-card">
-        <div className="sidebar-info-title">Resumen de Agenda</div>
+        <div className="sidebar-info-title">{t.sidebarInfoTitle}</div>
         <div className="sidebar-info-stat">
           <span className="stat-num">{appointmentsCount}</span>
-          <span className="stat-label">Citas en el día</span>
+          <span className="stat-label">{t.statLabel}</span>
         </div>
-        <p className="sidebar-info-desc">
-          Selecciona cualquier fecha en el calendario para consultar o gestionar las citas.
-        </p>
+        <p className="sidebar-info-desc">{t.sidebarInfoDesc}</p>
       </div>
     </aside>
   );

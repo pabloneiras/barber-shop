@@ -60,7 +60,7 @@ flowchart TD
     end
 
     subgraph Storage["Base de Datos SQLite"]
-        DB[("peluqueria.db SQLite")]
+        DB[("barber_shop.db SQLite")]
         T_Clients["Tabla clients"]
         T_Appts["Tabla appointments"]
         T_Reminders["Tabla whatsapp_reminders"]

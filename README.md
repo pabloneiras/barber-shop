@@ -60,7 +60,7 @@ flowchart TD
     end
 
     subgraph Storage["SQLite Database"]
-        DB[("peluqueria.db SQLite")]
+        DB[("barber_shop.db SQLite")]
         T_Clients["clients table"]
         T_Appts["appointments table"]
         T_Reminders["whatsapp_reminders table"]
@@ -110,8 +110,8 @@ flowchart TD
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/peluqueria-barber shop.git
-cd peluqueria-barber shop
+git clone https://github.com/your-username/barber-shop.git
+cd barber-shop
 ```
 
 ### 2. Backend Setup

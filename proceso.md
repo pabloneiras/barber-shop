@@ -4,9 +4,9 @@ Mi objetivo con este proyecto es ir construyendo el backend en Python (FastAPI) 
 ## Día 1
 
 - Aprendí qué es un entorno virtual (`venv`) y creé el de este proyecto (`barberShopFAPI_React/`).
-- Escribí a mano `init_db.py`(borrado, actualmente database_manager.py) para crear la base de datos `peluqueria.db` con SQLite.
+- Escribí a mano `init_db.py`(borrado, actualmente database_manager.py) para crear la base de datos `barber_shop.db` con SQLite.
 - Diseñé el esquema de datos:
-  - Tabla `clientes`: el teléfono es `TEXT NOT NULL UNIQUE` (el único campo obligatorio, ya que mi tío solo pone siempre el teléfono; nombre y apellido son opcionales).
+  - Tabla `clientes`: el teléfono es `TEXT NOT NULL UNIQUE` (el único campo obligatorio, ya que en la barbería solo se anota siempre el teléfono; nombre y apellido son opcionales).
   - Tabla `citas`: enlazada a `clientes` por `id_cliente` (clave foránea), con el servicio opcional y `recordatorio_enviado` a 0 por defecto.
 - Decidí usar `id` artificial incremental en vez de usar el teléfono como clave, porque los teléfonos pueden cambiar y son propensos a erratas. Lo justifiqué en `decisions.md` (ADR-002).
 - Verifiqué que la base de datos se crea correctamente: tablas y columnas comprobadas con `PRAGMA table_info`.
@@ -24,7 +24,7 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Implementé `get_appointments_with_client()` usando `JOIN` para enlazar clientes con citas y devolver los datos enriquecidos (nombre, teléfono).
 - Implementé `delete_appointment()` para cancelar citas.
 - Protegí la base de datos activando `PRAGMA foreign_keys = ON` y aplicando `ON DELETE RESTRICT` para proteger el historial de citas al intentar borrar clientes.
-- Recreé la base de datos `peluqueria.db` con el nuevo esquema en inglés.
+- Recreé la base de datos `barber_shop.db` con el nuevo esquema en inglés.
 - Traduje todo el proyecto (código, variables, decisiones) al inglés, manteniendo `proceso.md` en español.
 - Plan Día 4: `UPDATE` (editar cita y cliente) para completar el CRUD.
 
@@ -41,7 +41,7 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 - Añadí `db.create_tables()` y `db.close_connection()` al ciclo de vida: la BD se inicializa al arrancar y la conexión se cierra limpiamente al salir (opción 7).
 - Refactoricé los cuatro métodos de lectura de `database_manager.py` para que todos usen JOIN y devuelvan siempre las mismas columnas: `appointment_id`, `name`, `phone`, `appointment_date`, `appointment_time`, `service`. Antes tres de ellos hacían `SELECT *` de `appointments` sin datos del cliente. Incluir `appointment_id` en el SELECT era imprescindible para que el CLI pudiera mostrárselo al usuario.
 - Corregí tres bugs: (1) `input()` devuelve `str`, comparar con el entero `7` nunca salía del bucle; (2) typo de SQL (`EXIsdadadSTS`) que habría roto `create_tables()` con una BD nueva; (3) faltaba `return self.cursor.fetchall()` en `get_all_appointments_left()`.
-- Creé la carpeta `tests/` con `run_tests.py`, que usa su propia BD aislada (`test_peluqueria.db`, en `.gitignore`) y la recrea desde cero en cada ejecución para garantizar resultados reproducibles.
+- Creé la carpeta `tests/` con `run_tests.py`, que usa su propia BD aislada (`test_barber_shop.db`, en `.gitignore`) y la recrea desde cero en cada ejecución para garantizar resultados reproducibles.
 
 ## Día 6: Reestructuración Modular y Arquitectura Inicial de FastAPI
 - Reorganicé la arquitectura del proyecto separando responsabilidades: creé la estructura modular `backend/src/app` (capa de datos y CLI) y `backend/src/api` (capa de controladores HTTP/FastAPI).
@@ -111,7 +111,7 @@ Día 2: Separé la lógica en `database_manager.py` (capa de datos) y `utils.py`
 
 # Fase Automatización: Recordatorios de WhatsApp (Meta Cloud API + Google Cloud Tasks)
 - **Persistencia en SQLite (`whatsapp_reminders`)**:
-  - Incorporación de la tabla `whatsapp_reminders` en `Database/peluqueria.db` con clave foránea en cascada (`ON DELETE CASCADE`) ligada a `appointments(appointment_id)`.
+  - Incorporación de la tabla `whatsapp_reminders` en `Database/barber_shop.db` con clave foránea en cascada (`ON DELETE CASCADE`) ligada a `appointments(appointment_id)`.
   - Columnas: `appointment_id (PK)`, `task_name (TEXT)`, `send_at (TEXT ISO UTC)` y `status (TEXT: pendiente | programado | cancelado | enviado)`.
   - Modificación de `insert_appointment` en `DatabaseManager` para devolver `self.cursor.lastrowid`, permitiendo asociar de inmediato la cita recién insertada con su recordatorio.
   - Implementación de métodos CRUD especializados para recordatorios: `upsert_reminder()`, `get_reminder()`, `update_reminder_status()` y `delete_reminder()`.

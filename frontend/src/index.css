@@ -75,12 +75,42 @@ body {
   gap: 1rem;
 }
 
-.brand-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid var(--border-strong);
+.lang-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--border);
+  padding: 0.2rem 0.4rem;
+  background: var(--bg-card);
+}
+
+.btn-lang {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.btn-lang:hover {
+  color: var(--text-pure);
+}
+
+.btn-lang.active {
+  color: var(--text-pure);
+  background: var(--border-strong);
+}
+
+.lang-divider {
+  color: var(--border-strong);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  user-select: none;
 }
 
 .brand-title {

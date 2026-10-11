@@ -1,7 +1,7 @@
 """
 tests/run_tests.py
 Tests each DatabaseManager method using an isolated test database.
-Does NOT touch peluqueria.db or any project file.
+Does NOT touch barber_shop.db or any project file.
 Run from the project root: python tests/run_tests.py
 """
 
@@ -15,7 +15,7 @@ from app.database_manager import DatabaseManager
 
 
 # Isolated test DB in this same folder (gitignored)
-TEST_DB = Path(__file__).parent / "test_peluqueria.db"
+TEST_DB = Path(__file__).parent / "test_barber_shop.db"
 
 # Always start clean: delete and recreate the test DB
 if TEST_DB.exists():

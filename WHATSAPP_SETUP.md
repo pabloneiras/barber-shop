@@ -22,7 +22,7 @@ The reminder subsystem in [`backend/src/app/reminders.py`](backend/src/app/remin
 All secret keys and cloud configuration belong in a **`.env`** file placed directly in the **project root folder**:
 
 ```text
-peluqueria-barber shop/
+barber-shop/
 ├── .env                  <-- CREATE THIS FILE HERE
 ├── .env.example          <-- Reference template
 ├── .gitignore            <-- Configured to NEVER commit .env or *.json keys
@@ -71,7 +71,7 @@ META_TEMPLATE_LANG=es
 # GOOGLE CLOUD TASKS CONFIGURATION
 # -----------------------------------------------------------------------------
 # Google Cloud Project ID
-GCP_PROJECT=peluqueria-barber shop-prod
+GCP_PROJECT=barber-shop-prod
 
 # Region where your Cloud Tasks queue is created
 GCP_LOCATION=europe-west1
@@ -129,7 +129,7 @@ Google Cloud Tasks acts as the external scheduling engine. It holds the reminder
 
 1. **Create a Google Cloud Project:**
    - Go to the [Google Cloud Console](https://console.cloud.google.com/).
-   - Create a new project (e.g., `peluqueria-barber shop`).
+   - Create a new project (e.g., `barber-shop`).
    - Link a billing account (Cloud Tasks includes **1,000,000 free operations per month**; usage for a local barbershop is 100% free).
 2. **Enable the Cloud Tasks API:**
    - Run in your terminal (with Google Cloud SDK installed):

@@ -89,7 +89,7 @@ def logic_menu(option, db: DatabaseManager):
 
 
 def main():
-    db = DatabaseManager(Path() / "peluqueria.db")
+    db = DatabaseManager(Path() / "barber_shop.db")
     db.connect()
     db.create_tables()
     show_menu(db)

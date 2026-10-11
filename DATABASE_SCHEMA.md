@@ -1,6 +1,6 @@
 # Database Schema Reference
 
-This document provides a comprehensive technical reference for the SQLite database schema of the **Barber Shop** application, located at `Database/peluqueria.db`.
+This document provides a comprehensive technical reference for the SQLite database schema of the **Barber Shop** application, located at `Database/barber_shop.db`.
 
 ---
 

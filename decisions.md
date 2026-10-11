@@ -85,7 +85,7 @@ The application's user (a non-technical person) will only reliably fill in the p
 The application runs locally on a single machine, managed by a person without technical knowledge. It needs robustness and zero maintenance.
 
 ### Decision
-Use SQLite (embedded database in a single `peluqueria.db` file) managed with Python's standard module (`sqlite3`).
+Use SQLite (embedded database in a single `barber_shop.db` file) managed with Python's standard module (`sqlite3`).
 
 ### Alternatives considered
 - **PostgreSQL:** powerful and scalable, but requires a server, installation, credentials and maintenance, all unacceptable for the deployment environment.
