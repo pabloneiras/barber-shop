@@ -40,9 +40,11 @@ def compute_reminder_send_time(appointment_date: str, appointment_time: str) -> 
 
 def build_whatsapp_payload(phone: str, name: str | None, appointment_dt: datetime) -> dict:
     # Formats the Meta Cloud API utility template payload
-    clean_phone = phone.strip()
+    clean_phone = phone.strip().replace("+", "").replace("-", "").replace(" ", "")
+    if clean_phone.startswith("0034"):
+        clean_phone = clean_phone[4:]
     recipient_phone = clean_phone if clean_phone.startswith("34") else f"34{clean_phone}"
-    client_name = (name or "Cliente").strip()
+    client_name = name.strip() if name and name.strip() else "Cliente"
     date_formatted = appointment_dt.strftime("%d/%m")
     time_formatted = appointment_dt.strftime("%H:%M")
 
