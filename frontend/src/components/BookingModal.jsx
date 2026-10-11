@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { api } from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 
 // Modal dialog for booking new appointments and editing existing ones.
 export default function BookingModal({
@@ -9,13 +10,14 @@ export default function BookingModal({
   onClose,
   onSubmit,
 }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     phone: "",
     name: "",
     last_name: "",
     appointment_date: new Date().toISOString().split("T")[0],
     appointment_time: "10:00",
-    service: "Corte de pelo",
+    service: t.defaultService,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -36,14 +38,14 @@ export default function BookingModal({
         appointment_date:
           initialData.appointment_date || new Date().toISOString().split("T")[0],
         appointment_time: initialData.appointment_time || "10:00",
-        service: initialData.service || "Corte de pelo",
+        service: initialData.service || t.defaultService,
       });
     }
     setSuggestions([]);
     setShowDropdown(false);
     setRecognizedClient(null);
     setError(null);
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, t.defaultService]);
 
   // Debounces keystrokes in phone field by 200ms to query FastAPI only when user pauses typing
   useEffect(() => {
@@ -100,7 +102,7 @@ export default function BookingModal({
   const handleAppointmentFormSubmit = async (e) => {
     e.preventDefault();
     if (!formData.phone.trim()) {
-      setError("El teléfono es obligatorio");
+      setError(t.phoneRequiredError);
       return;
     }
     setError(null);
@@ -109,7 +111,7 @@ export default function BookingModal({
       await onSubmit(formData);
       onClose();
     } catch (err) {
-      setError(err.message || "Error al procesar la cita");
+      setError(err.message || t.errorProcessing);
     } finally {
       setIsSubmitting(false);
     }
@@ -126,12 +128,10 @@ export default function BookingModal({
         <div className="modal-header-bar">
           <div>
             <h3 className="modal-title">
-              {isEdit ? "Editar Cita" : "Nueva Cita / Agenda"}
+              {isEdit ? t.modalTitleEdit : t.modalTitleCreate}
             </h3>
             <p className="modal-desc">
-              {isEdit
-                ? "Modifica los datos de la reserva existente"
-                : "Introduce los datos del cliente para reservar el hueco"}
+              {isEdit ? t.modalDescEdit : t.modalDescCreate}
             </p>
           </div>
           <button className="btn-close-modal" onClick={onClose} type="button">
@@ -145,26 +145,26 @@ export default function BookingModal({
           {recognizedClient && (
             <div className="client-recognized-banner">
               <span>
-                Cliente habitual: <strong>{recognizedClient.name} {recognizedClient.last_name || ""}</strong>
+                {t.clientRecognized} <strong>{recognizedClient.name} {recognizedClient.last_name || ""}</strong>
               </span>
               <button
                 type="button"
                 className="btn-clear-recognized"
                 onClick={resetRecognizedClientSelection}
               >
-                Cambiar
+                {t.btnChangeClient}
               </button>
             </div>
           )}
 
           <div className="field-group">
-            <label className="field-label">Teléfono *</label>
+            <label className="field-label">{t.labelPhone}</label>
             <div className="autocomplete-container" ref={dropdownRef}>
               <input
                 name="phone"
                 type="tel"
                 className="field-input"
-                placeholder="Teléfono del cliente (ej. 600112233)"
+                placeholder={t.placeholderPhone}
                 value={formData.phone}
                 onChange={(e) => {
                   setFormData({ ...formData, phone: e.target.value });
@@ -178,17 +178,16 @@ export default function BookingModal({
                   setTimeout(() => setShowDropdown(false), 200);
                 }}
                 required
-                autoFocus
                 autoComplete="off"
               />
 
               {showDropdown && suggestions.length > 0 && (
                 <div className="autocomplete-dropdown">
                   {suggestions.map((client) => {
-                    const clientFullName = (
+                    const fullName = (
                       client.name
                         ? `${client.name} ${client.last_name || ""}`
-                        : "Cliente sin nombre"
+                        : t.unnamedClient
                     ).trim();
 
                     return (
@@ -197,18 +196,20 @@ export default function BookingModal({
                         className="autocomplete-item"
                         onMouseDown={() => populateFormWithSelectedClient(client)}
                       >
-                        <div className="ac-client-info">
-                          <span className="ac-client-name">{clientFullName}</span>
-                          <span className="ac-client-phone">{client.phone}</span>
+                        <div className="item-main">
+                          <span className="item-name">{fullName}</span>
+                          <span className="item-phone">{client.phone}</span>
                         </div>
-                        <div className="ac-client-meta">
+                        <div className="item-meta">
                           {client.visits_count > 0 && (
-                            <span className="ac-visits-tag">
-                              {client.visits_count} {client.visits_count === 1 ? "visita" : "visitas"}
+                            <span className="badge-visits">
+                              {client.visits_count} {t.habitualVisits}
                             </span>
                           )}
                           {client.last_service && (
-                            <span className="ac-last-service">{client.last_service}</span>
+                            <span className="badge-last-service">
+                              {t.lastServicePrefix} {client.last_service}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -221,12 +222,12 @@ export default function BookingModal({
 
           <div className="field-row-2">
             <div className="field-group">
-              <label className="field-label">Nombre</label>
+              <label className="field-label">{t.labelName}</label>
               <input
                 name="name"
                 type="text"
                 className="field-input"
-                placeholder="Nombre"
+                placeholder={t.placeholderName}
                 value={formData.name}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
@@ -234,12 +235,12 @@ export default function BookingModal({
               />
             </div>
             <div className="field-group">
-              <label className="field-label">Apellidos</label>
+              <label className="field-label">{t.labelLastName}</label>
               <input
                 name="last_name"
                 type="text"
                 className="field-input"
-                placeholder="Apellidos"
+                placeholder={t.placeholderLastName}
                 value={formData.last_name}
                 onChange={(e) =>
                   setFormData({ ...formData, last_name: e.target.value })
@@ -250,7 +251,7 @@ export default function BookingModal({
 
           <div className="field-row-2">
             <div className="field-group">
-              <label className="field-label">Fecha</label>
+              <label className="field-label">{t.labelDate}</label>
               <input
                 name="appointment_date"
                 type="date"
@@ -263,7 +264,7 @@ export default function BookingModal({
               />
             </div>
             <div className="field-group">
-              <label className="field-label">Hora</label>
+              <label className="field-label">{t.labelTime}</label>
               <input
                 name="appointment_time"
                 type="time"
@@ -278,7 +279,7 @@ export default function BookingModal({
           </div>
 
           <div className="field-group">
-            <label className="field-label">Servicio</label>
+            <label className="field-label">{t.labelService}</label>
             <input
               name="service"
               type="text"
@@ -292,37 +293,37 @@ export default function BookingModal({
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip("Corte de pelo")}
+                onClick={() => selectQuickServiceChip(t.serviceHaircut)}
               >
-                Corte
+                {t.chipHaircut}
               </button>
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip("Arreglo de barba")}
+                onClick={() => selectQuickServiceChip(t.serviceBeard)}
               >
-                Barba
+                {t.chipBeard}
               </button>
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip("Corte y barba")}
+                onClick={() => selectQuickServiceChip(t.serviceHaircutBeard)}
               >
-                Corte + Barba
+                {t.chipHaircutBeard}
               </button>
               <button
                 type="button"
                 className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip("Afeitado clásico")}
+                onClick={() => selectQuickServiceChip(t.serviceShave)}
               >
-                Afeitado
+                {t.chipShave}
               </button>
             </div>
           </div>
 
           <div className="modal-actions-bar">
             <button type="button" className="btn-ghost" onClick={onClose}>
-              Cancelar
+              {t.btnCancelModal}
             </button>
             <button
               type="submit"
@@ -330,10 +331,10 @@ export default function BookingModal({
               disabled={isSubmitting}
             >
               {isSubmitting
-                ? "Guardando..."
+                ? t.btnSaving
                 : isEdit
-                ? "Guardar Cambios"
-                : "Confirmar Cita"}
+                ? t.btnSaveEdit
+                : t.btnConfirmCreate}
             </button>
           </div>
         </form>

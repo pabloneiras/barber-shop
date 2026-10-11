@@ -1,8 +1,33 @@
 import os
 import logging
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from app.database import db
+
+# Automatically load environment variables from .env in project root if present
+def _load_env_file():
+    candidates = [
+        Path(__file__).resolve().parents[3] / ".env",
+        Path.cwd() / ".env",
+    ]
+    for env_path in candidates:
+        if env_path.is_file():
+            try:
+                with open(env_path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#") and "=" in line:
+                            key, val = line.split("=", 1)
+                            key = key.strip()
+                            val = val.strip().strip('"').strip("'")
+                            if key not in os.environ:
+                                os.environ[key] = val
+                break
+            except Exception:
+                pass
+
+_load_env_file()
 
 # Set up logging for reminder automation
 logger = logging.getLogger("reminders")
