@@ -20,30 +20,30 @@ Key architectural properties:
 
 ```mermaid
 erDiagram
-    clients ||--o{ appointments : "books (1:N)"
-    appointments ||--o| whatsapp_reminders : "schedules (1:1)"
+    clients ||--o{ appointments : "books"
+    appointments ||--o| whatsapp_reminders : "schedules"
 
     clients {
         INTEGER client_id PK "AUTOINCREMENT"
-        TEXT phone UK "Normalized digits only (NOT NULL)"
-        TEXT name "Client first name (nullable)"
-        TEXT last_name "Client last name (nullable)"
+        TEXT phone UK "Normalized unique digits"
+        TEXT name "Client first name"
+        TEXT last_name "Client last name"
     }
 
     appointments {
         INTEGER appointment_id PK "AUTOINCREMENT"
-        INTEGER client_id FK "References clients(client_id)"
-        TEXT appointment_date "Format: YYYY-MM-DD (NOT NULL)"
-        TEXT appointment_time "Format: HH:MM (NOT NULL)"
-        TEXT service "Service requested (nullable)"
-        INTEGER reminder_sent "Legacy flag (DEFAULT 0)"
+        INTEGER client_id FK "References clients"
+        TEXT appointment_date "Format: YYYY-MM-DD"
+        TEXT appointment_time "Format: HH:MM"
+        TEXT service "Service requested"
+        INTEGER reminder_sent "Legacy flag"
     }
 
     whatsapp_reminders {
         INTEGER appointment_id PK "Associated appointment ID"
-        TEXT task_name "Cloud Task or Mock Task ID (nullable)"
-        TEXT send_at "UTC ISO 8601 target delivery time (NOT NULL)"
-        TEXT status "simulado | programado | pendiente | omitido | cancelado"
+        TEXT task_name "Cloud Task or Mock ID"
+        TEXT send_at "UTC ISO 8601 target dispatch time"
+        TEXT status "simulado, programado, pendiente, omitido, cancelado"
     }
 ```
 
@@ -137,21 +137,21 @@ The `status` column in `whatsapp_reminders` follows a deterministic lifecycle:
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Evaluating : POST /appointments/
+    [*] --> Evaluating : Create appointment
 
-    Evaluating --> omitido : Notice < 24h (send_at in past)
-    Evaluating --> pendiente : > 30 days ahead (exceeds GCP queue limit)
-    Evaluating --> simulado : <= 30 days ahead & No cloud credentials (Mock Mode)
-    Evaluating --> programado : <= 30 days ahead & Cloud credentials configured
+    Evaluating --> omitido : Notice under 24 hours
+    Evaluating --> pendiente : Booked over 30 days ahead
+    Evaluating --> simulado : Within 30 days and in Mock Mode
+    Evaluating --> programado : Within 30 days and Cloud credentials set
 
-    pendiente --> programado : Startup sync (enters <= 30d window with credentials)
-    pendiente --> simulado : Startup sync (enters <= 30d window without credentials)
+    pendiente --> programado : Startup sync (within 30d with credentials)
+    pendiente --> simulado : Startup sync (within 30d in Mock Mode)
 
-    programado --> cancelado : DELETE /appointments/{id} (Task deleted from Cloud)
-    simulado --> cancelado : DELETE /appointments/{id} (Mock task revoked)
+    programado --> cancelado : Appointment deleted
+    simulado --> cancelado : Appointment deleted
 
-    programado --> Evaluating : PUT /appointments/{id} (Date/time altered)
-    simulado --> Evaluating : PUT /appointments/{id} (Date/time altered)
+    programado --> Evaluating : Date or time updated
+    simulado --> Evaluating : Date or time updated
 ```
 
 ### Status Definitions:
