@@ -13,6 +13,7 @@ class DatabaseManager:
 
     # creates the file if it doesn't exist
     def connect(self):
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         self.connection = sqlite3.connect(self.db_path, check_same_thread=False)
         # Set row_factory to sqlite3.Row: rows behave like dictionaries,
         # allowing access by column name (e.g., row['phone']) instead of index (row[0])

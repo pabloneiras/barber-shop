@@ -270,4 +270,6 @@ assert "reconciled" in sync_res
 assert "created" in sync_res
 
 db.close_connection()
+if TEST_DB.exists():
+    TEST_DB.unlink()
 print("ALL TESTS COMPLETED SUCCESSFULLY (15/15)")

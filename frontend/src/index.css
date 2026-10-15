@@ -684,7 +684,8 @@ body {
 /* ========================================================
    MODAL DIALOG (Nueva Cita / Editar Cita)
    ======================================================== */
-.modal-backdrop {
+.modal-backdrop,
+.modal-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.85);
@@ -708,35 +709,49 @@ body {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
 }
 
-.modal-box-header {
+.modal-box-header,
+.modal-header-bar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.75rem;
 }
 
-.modal-box-title {
+.modal-box-title,
+.modal-title {
   font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   text-transform: uppercase;
+  color: var(--text-pure);
 }
 
-.modal-close {
+.modal-desc {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.25rem;
+}
+
+.modal-close,
+.btn-close-modal {
   background: transparent;
   border: none;
   color: var(--text-muted);
   font-size: 1.25rem;
   cursor: pointer;
   font-family: var(--font-mono);
+  padding: 0.2rem;
+  line-height: 1;
 }
 
-.modal-close:hover {
+.modal-close:hover,
+.btn-close-modal:hover {
   color: var(--text-pure);
 }
 
-.modal-form {
+.modal-form,
+.modal-form-body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
