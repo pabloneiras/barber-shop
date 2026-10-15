@@ -3,8 +3,11 @@
 barberShop/
 
 # Archivos de base de datos
-barber_shop.db
-tests/test_barber_shop.db
+*.db
+*.sqlite
+*.sqlite3
+Database/*.db
+tests/*.db
 
 # Archivos temporales de Python
 __pycache__/

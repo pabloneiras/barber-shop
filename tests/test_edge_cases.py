@@ -34,6 +34,13 @@ db = DatabaseManager(EDGE_DB_PATH)
 db.connect()
 db.create_tables()
 
+# Ensure FastAPI and reminders use the isolated test database
+import api.api as fastapi_module
+fastapi_module.db = db
+reminders_module = sys.modules.get("app.reminders")
+if reminders_module:
+    reminders_module.db = db
+
 madrid_tz = ZoneInfo("Europe/Madrid")
 passed_tests = 0
 total_tests = 0
