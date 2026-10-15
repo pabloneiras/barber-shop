@@ -2,7 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { api } from "../services/api";
 import { useLanguage } from "../context/LanguageContext";
 
-// Modal dialog for booking new appointments and editing existing ones.
+const PRESET_COLORS = [
+  { hex: "#3b82f6", label: "Azul" },
+  { hex: "#f59e0b", label: "Dorado / VIP" },
+  { hex: "#10b981", label: "Verde" },
+  { hex: "#8b5cf6", label: "Púrpura" },
+  { hex: "#ec4899", label: "Rosa" },
+];
+
 export default function BookingModal({
   isOpen,
   mode = "create",
@@ -18,7 +25,10 @@ export default function BookingModal({
     appointment_date: new Date().toISOString().split("T")[0],
     appointment_time: "10:00",
     service: t.defaultService,
+    price: 12.0,
+    color: "#3b82f6",
   });
+  const [servicesCatalog, setServicesCatalog] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
@@ -27,6 +37,15 @@ export default function BookingModal({
   const [showDropdown, setShowDropdown] = useState(false);
   const [recognizedClient, setRecognizedClient] = useState(null);
   const dropdownRef = useRef(null);
+
+  // Load services catalog on open
+  useEffect(() => {
+    if (isOpen) {
+      api.getServices()
+        .then((data) => setServicesCatalog(data))
+        .catch((err) => console.error("Error loading services in modal:", err));
+    }
+  }, [isOpen]);
 
   // Synchronizes internal form state with props whenever modal opens or initialData changes
   useEffect(() => {
@@ -39,6 +58,8 @@ export default function BookingModal({
           initialData.appointment_date || new Date().toISOString().split("T")[0],
         appointment_time: initialData.appointment_time || "10:00",
         service: initialData.service || t.defaultService,
+        price: initialData.price !== undefined ? initialData.price : 12.0,
+        color: initialData.color || "#3b82f6",
       });
     }
     setSuggestions([]);
@@ -93,7 +114,6 @@ export default function BookingModal({
     setShowDropdown(false);
   };
 
-  // Clears recognized client banner to allow manual typing without autocomplete lock
   const resetRecognizedClientSelection = () => {
     setRecognizedClient(null);
   };
@@ -108,7 +128,11 @@ export default function BookingModal({
     setError(null);
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        price: parseFloat(formData.price) || 0,
+        color: formData.color || "#3b82f6",
+      });
       onClose();
     } catch (err) {
       setError(err.message || t.errorProcessing);
@@ -117,31 +141,37 @@ export default function BookingModal({
     }
   };
 
-  // Quick-selects a preset service name when clicking a service chip button
-  const selectQuickServiceChip = (serviceName) => {
-    setFormData((prev) => ({ ...prev, service: serviceName }));
+  // Quick-selects a preset service name and auto-fills its default price and color
+  const selectQuickService = (serviceName) => {
+    const matched = servicesCatalog.find((s) => s.name === serviceName);
+    setFormData((prev) => ({
+      ...prev,
+      service: serviceName,
+      price: matched ? matched.price : prev.price,
+      color: matched?.default_color ? matched.default_color : prev.color,
+    }));
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay modal-backdrop" onClick={onClose}>
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header-bar">
+        <div className="modal-header-bar modal-box-header">
           <div>
-            <h3 className="modal-title">
+            <h3 className="modal-title modal-box-title">
               {isEdit ? t.modalTitleEdit : t.modalTitleCreate}
             </h3>
             <p className="modal-desc">
               {isEdit ? t.modalDescEdit : t.modalDescCreate}
             </p>
           </div>
-          <button className="btn-close-modal" onClick={onClose} type="button">
+          <button className="btn-close-modal modal-close" onClick={onClose} type="button">
             ✕
           </button>
         </div>
 
         {error && <div className="toast-bar">{error}</div>}
 
-        <form onSubmit={handleAppointmentFormSubmit} className="modal-form-body">
+        <form onSubmit={handleAppointmentFormSubmit} className="modal-form-body modal-form">
           {recognizedClient && (
             <div className="client-recognized-banner">
               <span>
@@ -163,7 +193,7 @@ export default function BookingModal({
               <input
                 name="phone"
                 type="tel"
-                className="field-input"
+                className="field-input form-control"
                 placeholder={t.placeholderPhone}
                 value={formData.phone}
                 onChange={(e) => {
@@ -174,7 +204,6 @@ export default function BookingModal({
                   if (suggestions.length > 0) setShowDropdown(true);
                 }}
                 onBlur={() => {
-                  // Delayed hide allows onMouseDown on suggestion item to register before blur
                   setTimeout(() => setShowDropdown(false), 200);
                 }}
                 required
@@ -226,7 +255,7 @@ export default function BookingModal({
               <input
                 name="name"
                 type="text"
-                className="field-input"
+                className="field-input form-control"
                 placeholder={t.placeholderName}
                 value={formData.name}
                 onChange={(e) =>
@@ -239,7 +268,7 @@ export default function BookingModal({
               <input
                 name="last_name"
                 type="text"
-                className="field-input"
+                className="field-input form-control"
                 placeholder={t.placeholderLastName}
                 value={formData.last_name}
                 onChange={(e) =>
@@ -255,7 +284,7 @@ export default function BookingModal({
               <input
                 name="appointment_date"
                 type="date"
-                className="field-input"
+                className="field-input form-control"
                 value={formData.appointment_date}
                 onChange={(e) =>
                   setFormData({ ...formData, appointment_date: e.target.value })
@@ -268,7 +297,7 @@ export default function BookingModal({
               <input
                 name="appointment_time"
                 type="time"
-                className="field-input"
+                className="field-input form-control"
                 value={formData.appointment_time}
                 onChange={(e) =>
                   setFormData({ ...formData, appointment_time: e.target.value })
@@ -278,46 +307,80 @@ export default function BookingModal({
             </div>
           </div>
 
-          <div className="field-group">
-            <label className="field-label">{t.labelService}</label>
-            <input
-              name="service"
-              type="text"
-              className="field-input"
-              value={formData.service}
-              onChange={(e) =>
-                setFormData({ ...formData, service: e.target.value })
-              }
-            />
+          {/* Service & Price Row */}
+          <div className="field-row-2">
+            <div className="field-group">
+              <label className="field-label">{t.labelService}</label>
+              <input
+                name="service"
+                type="text"
+                className="field-input form-control"
+                value={formData.service}
+                onChange={(e) =>
+                  setFormData({ ...formData, service: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="field-group">
+              <label className="field-label">{t.labelPrice}</label>
+              <input
+                name="price"
+                type="number"
+                step="0.5"
+                className="field-input form-control"
+                value={formData.price}
+                onChange={(e) =>
+                  setFormData({ ...formData, price: e.target.value })
+                }
+              />
+            </div>
+          </div>
+
+          {/* Quick Services Chips */}
+          {servicesCatalog.length > 0 && (
             <div className="quick-services-row">
-              <button
-                type="button"
-                className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip(t.serviceHaircut)}
-              >
-                {t.chipHaircut}
-              </button>
-              <button
-                type="button"
-                className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip(t.serviceBeard)}
-              >
-                {t.chipBeard}
-              </button>
-              <button
-                type="button"
-                className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip(t.serviceHaircutBeard)}
-              >
-                {t.chipHaircutBeard}
-              </button>
-              <button
-                type="button"
-                className="btn-chip-mono"
-                onClick={() => selectQuickServiceChip(t.serviceShave)}
-              >
-                {t.chipShave}
-              </button>
+              {servicesCatalog.map((svc) => (
+                <button
+                  key={svc.service_id}
+                  type="button"
+                  className={`btn-chip-mono ${formData.service === svc.name ? "active" : ""}`}
+                  onClick={() => selectQuickService(svc.name)}
+                >
+                  <span
+                    className="chip-color-dot"
+                    style={{ backgroundColor: svc.default_color || "#3b82f6" }}
+                  ></span>
+                  {svc.name} ({svc.price}€)
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Color Picker: Palette + Free Selector */}
+          <div className="field-group" style={{ marginTop: "12px" }}>
+            <label className="field-label">{t.labelColor}</label>
+            <div className="color-selection-row">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={c.hex}
+                  type="button"
+                  className={`color-preset-circle ${formData.color === c.hex ? "active" : ""}`}
+                  style={{ backgroundColor: c.hex }}
+                  onClick={() => setFormData({ ...formData, color: c.hex })}
+                  title={c.label}
+                />
+              ))}
+
+              <div className="custom-color-picker-wrap" title={t.customColor}>
+                <input
+                  type="color"
+                  className="color-picker-native"
+                  value={formData.color || "#3b82f6"}
+                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                />
+                <span className="color-hex-tag">{formData.color}</span>
+              </div>
             </div>
           </div>
 

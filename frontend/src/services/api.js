@@ -105,8 +105,51 @@ export async function deleteAppointment(id) {
   });
 }
 
+// Fetches appointments within a date range (YYYY-MM-DD to YYYY-MM-DD).
+// Calls GET /appointments/range/?start_date={start}&end_date={end}
+export async function getAppointmentsRange(startDate, endDate) {
+  return request(`/appointments/range/?start_date=${startDate}&end_date=${endDate}`);
+}
+
+// Fetches all available services and prices.
+// Calls GET /services/
+export async function getServices() {
+  return request("/services/");
+}
+
+// Creates a new service.
+// Calls POST /services/
+export async function createService(serviceData) {
+  return request("/services/", {
+    method: "POST",
+    body: JSON.stringify(serviceData),
+  });
+}
+
+// Updates an existing service.
+// Calls PUT /services/{id}
+export async function updateService(id, updateData) {
+  return request(`/services/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(updateData),
+  });
+}
+
+// Deletes a service from catalog.
+// Calls DELETE /services/{id}
+export async function deleteService(id) {
+  return request(`/services/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// Fetches business revenue and breakdown stats.
+// Calls GET /stats/?start_date={start}&end_date={end}
+export async function getStats(startDate, endDate) {
+  return request(`/stats/?start_date=${startDate}&end_date=${endDate}`);
+}
+
 // Bundled export object for convenience and compatibility with components.
-// One only object that is made to "export" all functions in One object
 export const api = {
   getTodayAppointments,
   getAppointmentsByDate,
@@ -118,4 +161,10 @@ export const api = {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  getAppointmentsRange,
+  getServices,
+  createService,
+  updateService,
+  deleteService,
+  getStats,
 };

@@ -71,6 +71,58 @@ export const translations = {
     btnConfirmCreate: "Confirmar Cita",
     habitualVisits: "visitas",
     lastServicePrefix: "Último:",
+
+    // Navigation & Views
+    tabDay: "Día",
+    tabWeek: "Semana",
+    tabStats: "Estadísticas",
+    btnSettings: "Ajustes",
+
+    // Weekly Matrix
+    todayBadge: "HOY",
+    prevWeek: "Semana anterior",
+    thisWeek: "Esta semana",
+    nextWeek: "Semana siguiente",
+    noAppointmentsInWeek: "Sin citas esta semana",
+
+    // Price & Color
+    labelPrice: "Precio (€)",
+    labelColor: "Color / Marca Especial",
+    customColor: "Color libre",
+
+    // Settings
+    settingsTitle: "Configuración y Ajustes",
+    tabServices: "Servicios y Precios",
+    tabWeeklyConfig: "Horario Semanal",
+    newService: "+ Nuevo Servicio",
+    serviceName: "Nombre del servicio",
+    servicePrice: "Precio (€)",
+    serviceColor: "Color",
+    actions: "Acciones",
+    btnSave: "Guardar",
+    btnDelete: "Eliminar",
+    workDays: "Días visibles en la semana",
+    optMonFri: "Lunes a Viernes",
+    optMonSat: "Lunes a Sábado",
+    optAllWeek: "Toda la semana (Lunes a Domingo)",
+    startHour: "Hora de apertura",
+    endHour: "Hora de cierre",
+    timeInterval: "Intervalo de franjas",
+    min30: "30 minutos",
+    min60: "60 minutos",
+
+    // Stats
+    statsTitle: "Panel de Métricas y Facturación",
+    periodWeek: "Semana",
+    periodMonth: "Mes",
+    periodYear: "Año",
+    totalRevenue: "Ingresos Totales",
+    totalAppointments: "Citas Realizadas",
+    averageTicket: "Ticket Medio",
+    serviceBreakdown: "Desglose por Tipo de Servicio",
+    count: "Citas",
+    revenue: "Facturado",
+    noDataPeriod: "No hay citas registradas en este período.",
   },
 
   en: {
@@ -143,5 +195,57 @@ export const translations = {
     btnConfirmCreate: "Confirm Booking",
     habitualVisits: "visits",
     lastServicePrefix: "Last:",
+
+    // Navigation & Views
+    tabDay: "Day",
+    tabWeek: "Week",
+    tabStats: "Statistics",
+    btnSettings: "Settings",
+
+    // Weekly Matrix
+    todayBadge: "TODAY",
+    prevWeek: "Previous week",
+    thisWeek: "This week",
+    nextWeek: "Next week",
+    noAppointmentsInWeek: "No appointments this week",
+
+    // Price & Color
+    labelPrice: "Price (€)",
+    labelColor: "Color / Special Tag",
+    customColor: "Custom color",
+
+    // Settings
+    settingsTitle: "Configuration & Settings",
+    tabServices: "Services & Pricing",
+    tabWeeklyConfig: "Weekly Schedule",
+    newService: "+ New Service",
+    serviceName: "Service Name",
+    servicePrice: "Price (€)",
+    serviceColor: "Color",
+    actions: "Actions",
+    btnSave: "Save",
+    btnDelete: "Delete",
+    workDays: "Visible days in week",
+    optMonFri: "Monday to Friday",
+    optMonSat: "Monday to Saturday",
+    optAllWeek: "Full week (Mon to Sun)",
+    startHour: "Opening hour",
+    endHour: "Closing hour",
+    timeInterval: "Time slot interval",
+    min30: "30 minutes",
+    min60: "60 minutes",
+
+    // Stats
+    statsTitle: "Metrics & Billing Dashboard",
+    periodWeek: "Week",
+    periodMonth: "Month",
+    periodYear: "Year",
+    totalRevenue: "Total Revenue",
+    totalAppointments: "Total Appointments",
+    averageTicket: "Average Ticket",
+    serviceBreakdown: "Breakdown by Service Type",
+    count: "Appointments",
+    revenue: "Revenue",
+    noDataPeriod: "No appointments recorded in this period.",
   },
 };
