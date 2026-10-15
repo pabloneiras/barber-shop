@@ -38,10 +38,23 @@ class DatabaseManager:
         appointment_time TEXT NOT NULL,
         service TEXT,
         reminder_sent INTEGER DEFAULT 0,
+        price REAL DEFAULT 0.0,
+        color TEXT DEFAULT '#3b82f6',
         FOREIGN KEY (client_id) REFERENCES clients(client_id)
         ON UPDATE CASCADE
         ON DELETE RESTRICT)
         """)
+
+        # Add price and color columns to existing appointments table if missing
+        try:
+            self.cursor.execute("ALTER TABLE appointments ADD COLUMN price REAL DEFAULT 0.0;")
+        except sqlite3.OperationalError:
+            pass
+
+        try:
+            self.cursor.execute("ALTER TABLE appointments ADD COLUMN color TEXT DEFAULT '#3b82f6';")
+        except sqlite3.OperationalError:
+            pass
 
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS whatsapp_reminders(
@@ -50,6 +63,29 @@ class DatabaseManager:
         send_at TEXT NOT NULL,
         status TEXT NOT NULL)
         """)
+
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS services(
+        service_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        price REAL NOT NULL DEFAULT 0.0,
+        default_color TEXT DEFAULT '#3b82f6')
+        """)
+
+        # Prepopulate default services if empty
+        self.cursor.execute("SELECT COUNT(*) FROM services")
+        if self.cursor.fetchone()[0] == 0:
+            default_services = [
+                ("Corte caballero", 12.0, "#3b82f6"),
+                ("Arreglo de barba", 8.0, "#10b981"),
+                ("Corte y barba", 18.0, "#f59e0b"),
+                ("Tinte / Tratamiento", 20.0, "#8b5cf6"),
+            ]
+            self.cursor.executemany(
+                "INSERT INTO services (name, price, default_color) VALUES (?, ?, ?)",
+                default_services,
+            )
+
         self.connection.commit()
 
     def close_connection(self):
@@ -70,12 +106,25 @@ class DatabaseManager:
         )  # returns the new client's id so we can chain it into insert_appointment
 
     def insert_appointment(
-        self, client_id, appointment_date, appointment_time, service=None
+        self, client_id, appointment_date, appointment_time, service=None, price=None, color=None
     ):
+        if price is None and service:
+            self.cursor.execute("SELECT price, default_color FROM services WHERE name = ?", (service,))
+            svc_row = self.cursor.fetchone()
+            if svc_row:
+                price = svc_row["price"]
+                if color is None:
+                    color = svc_row["default_color"]
+
+        if price is None:
+            price = 0.0
+        if color is None:
+            color = "#3b82f6"
+
         self.cursor.execute(
             """
-        INSERT INTO appointments (client_id, appointment_date, appointment_time, service) VALUES (?,?,?,?)""",
-            (client_id, appointment_date, appointment_time, service),
+        INSERT INTO appointments (client_id, appointment_date, appointment_time, service, price, color) VALUES (?,?,?,?,?,?)""",
+            (client_id, appointment_date, appointment_time, service, float(price), str(color)),
         )
         self.connection.commit()
         return self.cursor.lastrowid
@@ -133,7 +182,8 @@ class DatabaseManager:
         query = """
             SELECT appointments.appointment_id,
                    clients.name, clients.phone,
-                   appointments.appointment_date, appointments.appointment_time, appointments.service
+                   appointments.appointment_date, appointments.appointment_time, appointments.service,
+                   appointments.price, appointments.color
             FROM appointments
             JOIN clients ON appointments.client_id = clients.client_id
         """
@@ -158,7 +208,7 @@ class DatabaseManager:
         return self.cursor.rowcount  # 1 if deleted, 0 if the id didn't exist
 
     # Only updates the fields that are passed — does not override the rest with None
-    def update_appointment(self, appointment_id, date=None, time=None, service=None):
+    def update_appointment(self, appointment_id, date=None, time=None, service=None, price=None, color=None):
 
         params = []
         fields = []
@@ -171,6 +221,12 @@ class DatabaseManager:
         if service is not None:
             fields.append("service = ?")
             params.append(service)
+        if price is not None:
+            fields.append("price = ?")
+            params.append(float(price))
+        if color is not None:
+            fields.append("color = ?")
+            params.append(str(color))
 
         if not fields:
             return 0  # nothing to update
@@ -312,4 +368,87 @@ class DatabaseManager:
             (appointment_id,),
         )
         self.connection.commit()
+
+    def get_services(self):
+        # Returns all services configured in the database ordered by ID.
+        self.cursor.execute("SELECT service_id, name, price, default_color FROM services ORDER BY service_id ASC")
+        return self.cursor.fetchall()
+
+    def create_service(self, name: str, price: float, default_color: str = "#3b82f6"):
+        # Creates a new service in the catalog.
+        self.cursor.execute(
+            "INSERT INTO services (name, price, default_color) VALUES (?, ?, ?)",
+            (name.strip(), float(price), default_color.strip() if default_color else "#3b82f6"),
+        )
+        self.connection.commit()
+        return self.cursor.lastrowid
+
+    def update_service(self, service_id: int, name: str | None = None, price: float | None = None, default_color: str | None = None):
+        # Updates service properties in the catalog.
+        fields = []
+        params = []
+        if name is not None:
+            fields.append("name = ?")
+            params.append(name.strip())
+        if price is not None:
+            fields.append("price = ?")
+            params.append(float(price))
+        if default_color is not None:
+            fields.append("default_color = ?")
+            params.append(default_color.strip())
+        if not fields:
+            return 0
+        params.append(service_id)
+        self.cursor.execute(f"UPDATE services SET {', '.join(fields)} WHERE service_id = ?", params)
+        self.connection.commit()
+        return self.cursor.rowcount
+
+    def delete_service(self, service_id: int):
+        # Deletes a service from the catalog.
+        self.cursor.execute("DELETE FROM services WHERE service_id = ?", (service_id,))
+        self.connection.commit()
+        return self.cursor.rowcount
+
+    def get_appointments_range(self, start_date: str, end_date: str):
+        # Retrieves all appointments between start_date and end_date (inclusive) for weekly/monthly calendar views.
+        sql = """
+            SELECT a.appointment_id, c.client_id, c.name, c.last_name, c.phone,
+                   a.appointment_date, a.appointment_time, a.service, a.price, a.color
+            FROM appointments a
+            JOIN clients c ON a.client_id = c.client_id
+            WHERE a.appointment_date >= ? AND a.appointment_date <= ?
+            ORDER BY a.appointment_date ASC, a.appointment_time ASC
+        """
+        self.cursor.execute(sql, (start_date, end_date))
+        return self.cursor.fetchall()
+
+    def get_statistics(self, start_date: str, end_date: str):
+        # Aggregates financial and appointment metrics between start_date and end_date.
+        self.cursor.execute("""
+            SELECT COUNT(*), COALESCE(SUM(price), 0.0)
+            FROM appointments
+            WHERE appointment_date >= ? AND appointment_date <= ?
+        """, (start_date, end_date))
+        total_row = self.cursor.fetchone()
+        total_count = total_row[0] if total_row else 0
+        total_revenue = round(float(total_row[1]), 2) if total_row else 0.0
+
+        self.cursor.execute("""
+            SELECT COALESCE(service, 'Sin especificar') AS service_name,
+                   COUNT(*) AS count,
+                   ROUND(COALESCE(SUM(price), 0.0), 2) AS revenue,
+                   COALESCE(color, '#3b82f6') AS color
+            FROM appointments
+            WHERE appointment_date >= ? AND appointment_date <= ?
+            GROUP BY service_name
+            ORDER BY count DESC
+        """, (start_date, end_date))
+        by_service = self.cursor.fetchall()
+
+        return {
+            "total_appointments": total_count,
+            "total_revenue": total_revenue,
+            "average_ticket": round(total_revenue / total_count, 2) if total_count > 0 else 0.0,
+            "services": [dict(r) for r in by_service],
+        }
 

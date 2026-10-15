@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import Header from "./components/Header";
 import AgendaToday from "./components/AgendaToday";
 import CalendarSidebar from "./components/CalendarSidebar";
+import AgendaWeekly from "./components/AgendaWeekly";
+import StatsDashboard from "./components/StatsDashboard";
+import SettingsModal from "./components/SettingsModal";
 import BookingModal from "./components/BookingModal";
 import { api } from "./services/api";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
@@ -15,18 +18,54 @@ function getTodayLocalDateISOString() {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+const DEFAULT_WEEKLY_CONFIG = {
+  daysMode: "mon-sat",
+  startHour: "09:30",
+  endHour: "20:30",
+  intervalMinutes: 30,
+};
+
 function MainWorkspace() {
   const { t } = useLanguage();
+  const [activeView, setActiveView] = useState(() => {
+    return localStorage.getItem("barber_active_view") || "week";
+  });
+
   const [selectedDate, setSelectedDate] = useState(getTodayLocalDateISOString);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Settings modal & config
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [weeklyConfig, setWeeklyConfig] = useState(() => {
+    try {
+      const stored = localStorage.getItem("barber_weekly_config");
+      return stored ? JSON.parse(stored) : DEFAULT_WEEKLY_CONFIG;
+    } catch {
+      return DEFAULT_WEEKLY_CONFIG;
+    }
+  });
+
   const [modalState, setModalState] = useState({
     isOpen: false,
     mode: "create",
     data: null,
   });
 
-  // Fetches appointments for a specific calendar date from FastAPI backend
+  // Persist active view
+  const handleViewChange = (view) => {
+    setActiveView(view);
+    localStorage.setItem("barber_active_view", view);
+  };
+
+  // Persist weekly config
+  const handleSaveWeeklyConfig = (newCfg) => {
+    setWeeklyConfig(newCfg);
+    localStorage.setItem("barber_weekly_config", JSON.stringify(newCfg));
+  };
+
+  // Fetches appointments for daily view
   const fetchAppointmentsForDate = useCallback(async (date) => {
     setLoading(true);
     try {
@@ -40,13 +79,15 @@ function MainWorkspace() {
     }
   }, []);
 
-  // Triggers backend fetch whenever the user selects a new calendar date
   useEffect(() => {
-    fetchAppointmentsForDate(selectedDate);
-  }, [selectedDate, fetchAppointmentsForDate]);
+    if (activeView === "day") {
+      fetchAppointmentsForDate(selectedDate);
+    }
+  }, [selectedDate, activeView, fetchAppointmentsForDate, refreshKey]);
 
-  // Launches modal in creation mode prefilled with the selected date and clicked time slot
-  const openNewBookingModalForSlot = (time = "10:00") => {
+  // Launches modal in creation mode prefilled with date and time
+  const openNewBookingModalForSlot = (time = "10:00", date = null) => {
+    const targetDate = date || selectedDate || getTodayLocalDateISOString();
     setModalState({
       isOpen: true,
       mode: "create",
@@ -54,9 +95,11 @@ function MainWorkspace() {
         phone: "",
         name: "",
         last_name: "",
-        appointment_date: selectedDate,
+        appointment_date: targetDate,
         appointment_time: time,
         service: t.defaultService,
+        price: 12.0,
+        color: "#3b82f6",
       },
     });
   };
@@ -74,16 +117,17 @@ function MainWorkspace() {
         appointment_date: appointment.appointment_date,
         appointment_time: appointment.appointment_time,
         service: appointment.service || "",
+        price: appointment.price !== undefined ? appointment.price : 12.0,
+        color: appointment.color || "#3b82f6",
       },
     });
   };
 
-  // Hides the appointment dialog modal and clears its active state
   const closeBookingModal = () => {
     setModalState((prev) => ({ ...prev, isOpen: false }));
   };
 
-  // Handles modal form submit: calls POST for new appointments or PUT for edits, then reloads day data
+  // Handles modal form submit: calls POST for new appointments or PUT for edits
   const handleSaveAppointmentFromModal = async (formData) => {
     if (modalState.mode === "create") {
       await api.createAppointment(formData);
@@ -92,14 +136,15 @@ function MainWorkspace() {
         appointment_date: formData.appointment_date,
         appointment_time: formData.appointment_time,
         service: formData.service,
+        price: formData.price,
+        color: formData.color,
       });
     }
 
-    // Refresh appointments list for the currently selected date
-    await fetchAppointmentsForDate(selectedDate);
+    setRefreshKey((k) => k + 1);
   };
 
-  // Confirms deletion with the user, calls DELETE on FastAPI, and refreshes the timeline
+  // Confirms deletion with the user, calls DELETE on FastAPI
   const cancelAppointmentWithConfirmation = async (id, clientName) => {
     const displayName = clientName || t.unnamedClient;
     const confirmed = window.confirm(t.confirmCancel(displayName));
@@ -107,7 +152,7 @@ function MainWorkspace() {
 
     try {
       await api.deleteAppointment(id);
-      await fetchAppointmentsForDate(selectedDate);
+      setRefreshKey((k) => k + 1);
     } catch (err) {
       console.error("Failed to delete appointment:", err);
       alert(err.message || t.cancelError);
@@ -116,22 +161,44 @@ function MainWorkspace() {
 
   return (
     <div className="app-shell">
-      <Header onNewClick={() => openNewBookingModalForSlot("10:00")} />
+      <Header
+        activeView={activeView}
+        setActiveView={handleViewChange}
+        onNewClick={() => openNewBookingModalForSlot("10:00")}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+      />
 
-      <main className="workspace-grid">
-        <AgendaToday
-          appointments={appointments}
-          selectedDate={selectedDate}
-          onEdit={openEditBookingModalForAppointment}
-          onDelete={cancelAppointmentWithConfirmation}
-          onBookSlot={(time) => openNewBookingModalForSlot(time)}
-        />
+      <main className="workspace-main">
+        {activeView === "day" && (
+          <div className="workspace-grid">
+            <AgendaToday
+              appointments={appointments}
+              selectedDate={selectedDate}
+              onEdit={openEditBookingModalForAppointment}
+              onDelete={cancelAppointmentWithConfirmation}
+              onBookSlot={(time) => openNewBookingModalForSlot(time, selectedDate)}
+            />
 
-        <CalendarSidebar
-          selectedDate={selectedDate}
-          setSelectedDate={setSelectedDate}
-          appointmentsCount={appointments.length}
-        />
+            <CalendarSidebar
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              appointmentsCount={appointments.length}
+            />
+          </div>
+        )}
+
+        {activeView === "week" && (
+          <AgendaWeekly
+            config={weeklyConfig}
+            refreshKey={refreshKey}
+            onEdit={openEditBookingModalForAppointment}
+            onBookSlot={(date, time) => openNewBookingModalForSlot(time, date)}
+          />
+        )}
+
+        {activeView === "stats" && (
+          <StatsDashboard key={refreshKey} />
+        )}
       </main>
 
       <BookingModal
@@ -140,6 +207,14 @@ function MainWorkspace() {
         initialData={modalState.data}
         onClose={closeBookingModal}
         onSubmit={handleSaveAppointmentFromModal}
+      />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        config={weeklyConfig}
+        onClose={() => setIsSettingsOpen(false)}
+        onSaveConfig={handleSaveWeeklyConfig}
+        onServicesChanged={() => setRefreshKey((k) => k + 1)}
       />
     </div>
   );

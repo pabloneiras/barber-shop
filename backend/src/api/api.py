@@ -53,6 +53,8 @@ class AppointmentResponse(BaseModel):
     appointment_date: str
     appointment_time: str
     service: str | None = None
+    price: float | None = 0.0
+    color: str | None = "#3b82f6"
 
 
 # Input schema: Represents incoming data from the client to create an appointment (POST requests).
@@ -64,12 +66,35 @@ class AppointmentCreate(BaseModel):
     name: str
     last_name: str | None = None
     service: str | None = None
+    price: float | None = None
+    color: str | None = None
 
-#For the put
+# For the put
 class AppointmentUpdate(BaseModel):
     appointment_date: str | None = None
     appointment_time: str | None = None
     service: str | None = None
+    price: float | None = None
+    color: str | None = None
+
+
+class ServiceSchema(BaseModel):
+    service_id: int
+    name: str
+    price: float
+    default_color: str | None = "#3b82f6"
+
+
+class ServiceCreate(BaseModel):
+    name: str
+    price: float
+    default_color: str | None = "#3b82f6"
+
+
+class ServiceUpdate(BaseModel):
+    name: str | None = None
+    price: float | None = None
+    default_color: str | None = None
 
 
 # Autocomplete search response schema for clients
@@ -148,7 +173,14 @@ def fapi_get_appointment(appointment_id: int):
 @app.post("/appointments/")
 def fapi_intert_post_appointment(appointment: AppointmentCreate):
     client_id = db.get_or_create_client(appointment.phone, appointment.name, appointment.last_name)
-    appointment_id = db.insert_appointment(client_id, appointment.appointment_date, appointment.appointment_time, appointment.service)
+    appointment_id = db.insert_appointment(
+        client_id,
+        appointment.appointment_date,
+        appointment.appointment_time,
+        appointment.service,
+        price=appointment.price,
+        color=appointment.color,
+    )
     try:
         programar_recordatorio(appointment_id)
     except Exception as exc:
@@ -158,7 +190,7 @@ def fapi_intert_post_appointment(appointment: AppointmentCreate):
 
 # Update (PUT): targets {appointment_id} in the URL because it modifies a specific existing appointment.
 # In REST architecture, modification requests must specify exactly which record to update via its path ID.
-# Uses AppointmentUpdate so the client only sends the fields they want to change (date, time, service).
+# Uses AppointmentUpdate so the client only sends the fields they want to change (date, time, service, price, color).
 @app.put("/appointments/{appointment_id}")
 def fapi_put_updt_appointment(appointment_id: int, new_appointment: AppointmentUpdate):
     existent_appointment = db.get_appointment(appointment_id)
@@ -168,6 +200,8 @@ def fapi_put_updt_appointment(appointment_id: int, new_appointment: AppointmentU
             date=new_appointment.appointment_date,
             time=new_appointment.appointment_time,
             service=new_appointment.service,
+            price=new_appointment.price,
+            color=new_appointment.color,
         )
         if bool_rc == 1:
             if new_appointment.appointment_date is not None or new_appointment.appointment_time is not None:
@@ -203,6 +237,49 @@ def fapi_get_appointment_reminder(appointment_id: int):
     if reminder:
         return dict(reminder)
     return {"mensaje": "recordatorio no encontrado"}
+
+
+# Retrieves all appointments within a calendar range [start_date, end_date] for weekly views.
+@app.get("/appointments/range/", response_model=list[AppointmentResponse])
+def fapi_get_appointments_range(start_date: str, end_date: str):
+    return [dict(row) for row in db.get_appointments_range(start_date, end_date)]
+
+
+# Retrieves all configured services with current pricing and default colors.
+@app.get("/services/", response_model=list[ServiceSchema])
+def fapi_get_services():
+    return [dict(row) for row in db.get_services()]
+
+
+# Creates a new service in the catalog.
+@app.post("/services/", response_model=dict)
+def fapi_create_service(service: ServiceCreate):
+    svc_id = db.create_service(service.name, service.price, service.default_color)
+    return {"mensaje": "servicio creado", "service_id": svc_id}
+
+
+# Updates service name, price, or default color.
+@app.put("/services/{service_id}", response_model=dict)
+def fapi_update_service(service_id: int, service: ServiceUpdate):
+    rc = db.update_service(service_id, name=service.name, price=service.price, default_color=service.default_color)
+    if rc:
+        return {"mensaje": "servicio actualizado"}
+    return {"mensaje": "servicio no encontrado o sin cambios"}
+
+
+# Deletes a service from the catalog.
+@app.delete("/services/{service_id}", response_model=dict)
+def fapi_delete_service(service_id: int):
+    rc = db.delete_service(service_id)
+    if rc:
+        return {"mensaje": "servicio eliminado"}
+    return {"mensaje": "servicio no existia"}
+
+
+# Retrieves aggregated revenue and service statistics between start_date and end_date.
+@app.get("/stats/")
+def fapi_get_statistics(start_date: str, end_date: str):
+    return db.get_statistics(start_date, end_date)
 
 
 # Mount production frontend static assets and SPA route handling when built
